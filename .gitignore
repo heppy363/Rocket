@@ -1,0 +1,65 @@
+# --- DIRECTORIES DI BUILD (Universali) ---
+# Ignora qualsiasi cartella di build o file generato da CMake
+build*/
+**/build*/
+build-slint/
+CMakeFiles/
+**/CMakeFiles/
+cmake-build-*/
+out/
+bin/
+lib/
+# Cartelle di scaricamento dipendenze temporanee
+_deps/
+**/_deps/
+
+# --- FILE GENERATI DA CMAKE ---
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+Makefile
+install_manifest.txt
+CPackConfig.cmake
+CPackSourceConfig.cmake
+
+# --- VISUAL STUDIO / MSVC ---
+.vs/
+**/x64/
+**/Debug/
+**/Release/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.dir/
+*.obj
+*.pdb
+*.ilk
+*.idb
+*.exp
+*.lib
+*.dll
+*.exe
+*.recipe
+*.tlog/
+*.lastbuildstate
+
+# --- RUST / TOOLCHAIN ARTIFACTS ---
+# Manteniamo ignorati anche eventuali artefatti Rust legacy o futuri tool ausiliari
+target/
+**/target/
+**/cargo/
+*.rlib
+*.pdb
+
+# --- EDITOR E VARIE ---
+.vscode/
+*.user
+*.userosscache
+*.suo
+*.swp
+*.tmp
+*.log
+.DS_Store (se sei su Mac)

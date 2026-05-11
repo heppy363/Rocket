@@ -1,0 +1,50 @@
+# TODO Backlog
+
+## Priority Queue
+- [x] Bootstrap del progetto C++20 con build system minimale.
+- [x] Implementare integratore RK4 per lo stato traslazionale con massa variabile.
+- [x] Aggiungere supporto iniziale a cluster motori con failure di un motore e momento asimmetrico.
+- [~] Estendere il modello da traslazionale 3D a 6-DOF completo con orientazione e dinamica rotazionale.
+- [~] Aggiungere momenti aerodinamici e smorzamento rotazionale al core 6-DOF.
+- [~] Implementare calcolo `X_cg` e `X_cp` con metodo di Barrowman.
+- [ ] Integrare modello atmosferico/meteo via libcurl e OpenWeatherMap.
+- [~] Integrare modello atmosferico/meteo via provider a coordinate e fetch HTTP reale.
+- [~] Aggiungere layer di rendering Raylib per traiettoria, assetto e staging diagnostico.
+- [~] Arricchire la GUI con switch `Modelazione` / `Simulazione`, pannelli diagnostici, grafici temporali e controlli di scenario.
+- [~] Proseguire la rifinitura UI/UX: uniformare naming, microcopy, gerarchia visiva e leggibilita dei pannelli senza cambiare il comportamento.
+- [~] Consolidare la rifattorizzazione dell'app layer: dopo la prima estrazione da `main.cpp`, valutare il passaggio successivo da moduli `.inl` interni a componenti `.hpp/.cpp` piu tipizzati.
+- [x] Riportare la build primaria al workspace 3D Raylib rimuovendo la dipendenza operativa da Slint.
+- [~] Introdurre una sezione `Wind Tunnel` nel workspace `Simulazione` con streamline, regime di flusso e lettura sintetica degli effetti aero sulla geometria corrente.
+- [~] Riallineare `F3` a una sola finestra di camera del vento con lettura per-componente di pressione, carico aerodinamico e sensibilita all'angolo di attacco.
+- [~] Introdurre modellazione 3D procedurale del razzo basata sulla geometria del veicolo.
+- [~] Estendere la `MeshGenerator` con mesh dedicate per transizioni e raffinamento dei profili `Elliptical` / `Airfoil`.
+- [x] Aggiungere selezione GUI esplicita dei profili mesh senza dipendere da scorciatoie tastiera.
+- [ ] Introdurre docking reale e gestione pannelli ridimensionabili per il workspace `Modelazione`.
+- [~] Introdurre stati vuoti, hint contestuali e feedback visivi ancora piu guidati per modeling e simulation.
+- [~] Estendere la guidance con hint dipendenti dal tool attivo, warning visuali piu precisi e piccoli walkthrough per i primi workflow.
+- [~] Introdurre review dei keyframe missione con finestra di analisi dedicata e stepping da tastiera.
+- [ ] Espandere la review keyframe con scrub manuale, export snapshot e confronto fra keyframe consecutivi.
+- [x] Sostituire i placeholder `Transition` / `Payload` con moduli geometrici effettivi e property editor dedicati.
+- [~] Introdurre editing diretto di vertici/handle nella viewport 3D con gizmo e selezione locale per singolo componente.
+- [~] Introdurre editing diretto di vertici/handle nella viewport 3D con gizmo, griglia locale precisa e selezione locale per singolo componente.
+- [~] Evolvere la nuova selezione diretta in viewport e la edit cage verso vero editing per-vertex libero, con hit test piu preciso sulla mesh e manipolatori dedicati per ogni componente.
+- [~] Sostituire la mesh usa-e-getta con un core persistente a `vertex/index buffers` per ogni componente, con accesso alla topologia dal runtime.
+- [~] Arricchire la libreria di componenti con preset aggiuntivi guidati da documentazione esterna e dati materiali estesi.
+- [ ] Collegare la GUI simulazione a un fetch meteo live reale con parsing risposta e popolamento automatico del profilo atmosferico.
+- [~] Introdurre profilo vento multilayer, recovery system e fase di discesa con paracadute/drag deployment.
+- [ ] Migliorare ulteriormente il modello balistico con profilo vento stratificato, rail guidance e mappe di dispersione a terra.
+- [~] Estendere i manipolatori viewport a vera modalita `move/rotate/scale`, multi-select e editing per-vertex piu fine sulle mesh.
+- [ ] Estendere ulteriormente la camera CAD del workspace `Modelazione` con focus frame su componente selezionato, vista orbit-center dinamica e shortcut tipo numpad.
+- [ ] Aggiungere libreria motori reale con casing, nozzle, grain e preset cluster piu ricchi.
+- [ ] Aggiungere heatmap di pressione e coefficiente locale sui singoli pezzi direttamente nella finestra `F3`.
+- [x] Aggiungere selezione attiva del componente nella camera del vento per ispezione dedicata di `nose`, `body`, `transition`, `fins`, `payload` e `motor mount`.
+- [~] Arricchire il focus della camera del vento con coefficiente locale, confronto fra componenti e indicatori di separazione piu espliciti.
+- [ ] Evolvere la camera del vento da diagnostica avanzata a vero solver CFD accoppiato, con campo di pressione sulla mesh, wake strutturata e convergenza numerica esplicita.
+- [ ] Integrare nel workspace `Simulazione` grafici storici di `rho`, `P`, `P0`, `Mach`, `q` e `Re` per leggere il profilo aero lungo tutta la missione.
+- [ ] Portare il nuovo flusso particellare continuo verso wake vorticosa piu ricca, separazione locale e densita particelle adattiva per zona critica del corpo.
+- [ ] Raffinare il solver CFD particellare verso un PBF piu completo con neighborhood search dedicata, vincoli di densita piu stretti e coupling locale piu fedele sulla mesh.
+- [ ] Portare l'aeroelasticita da coefficiente sintetico a vera deformazione mesh runtime con matrice di compliance per componente e feedback visivo diretto nel render 3D.
+- [ ] Introdurre anisotropia e orientamento fibra per distinguere compositi isotropi da layup reali nelle stime di rigidezza e flutter.
+- [~] Aggiungere selezione edge/face, soft selection e strumenti `extrude`, `bevel`, `loop cut` per avvicinare davvero il modeling a Blender.
+- [ ] Estendere il nuovo `loop cut` locale a veri edge loop continui e aggiungere `bevel` completo su edge/vertex, non solo su facce triangolari.
+- [ ] Rendere persistenti e serializzabili nel progetto le operazioni topologiche applicate alla mesh, evitando il reset al rebuild parametrico.
