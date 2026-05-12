@@ -250,6 +250,7 @@ struct AppState {
     bool show_reference_blueprint {true};
     bool simulation_multi_window_mode {true};
     bool show_flight_markers {true};
+    bool show_cfd_pressure_overlay {true};
     ComponentSelection wind_tunnel_focus {ComponentSelection::NoseCone};
     double reference_board_scale_m {2.6};
     double reference_board_offset_m {};

@@ -81,6 +81,7 @@ Questi file sono inclusi da `src/RocketApp.cpp` e rappresentano la UI/interactio
 - `src/app/RocketAppInteraction.inl`: camera, picking, handle, grid, mesh editing, replay.
 - `src/app/RocketAppUiTrajectory.inl`: rendering traiettoria, replay ghost e marker di volo.
 - `src/app/RocketAppUiCommon.inl`: primitive UI e utility condivise.
+- `src/app/RocketAppUiWindTunnel.inl`: blocco dedicato al pannello `Wind Tunnel`, streamline, focus card e legenda heatmap.
 - `src/app/RocketAppUiModeling.inl`: pannelli e workflow del workspace `Modelazione`.
 - `src/app/RocketAppUiSimulation.inl`: pannelli e workflow del workspace `Simulazione`.
 

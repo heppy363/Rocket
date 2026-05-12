@@ -35,6 +35,7 @@ namespace {
 #include "app/RocketAppInteraction.inl"
 #include "app/RocketAppUiTrajectory.inl"
 #include "app/RocketAppUiCommon.inl"
+#include "app/RocketAppUiWindTunnel.inl"
 #include "app/RocketAppUiModeling.inl"
 #include "app/RocketAppUiSimulation.inl"
 
@@ -255,6 +256,10 @@ int rocket::runRocketLabApp() {
             cfd_frame.rendered_particle_count);
         const rocket::SimulationSnapshot& active_snapshot =
             app_state.workspace == Workspace::Modeling ? modeling_snapshot : simulation_snapshot;
+        mesh_generator.setPressureOverlay(
+            cfd_frame.component_pressure_pa,
+            std::max(active_snapshot.dynamic_pressure_pa, active_snapshot.recommended_max_dynamic_pressure_pa),
+            app_state.show_cfd_pressure_overlay);
 
         if (app_state.show_simulation_window) {
             simulation_monitor.publish(buildMonitorState(simulation_snapshot, simulation_runtime, vehicle, environment));

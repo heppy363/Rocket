@@ -1,6 +1,7 @@
 #include "rocket/MeshGenerator.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -94,6 +95,26 @@ Color materialBaseColor(ComponentMaterial material) noexcept {
         return Color {163, 99, 72, 255};
     }
     return Color {200, 200, 200, 255};
+}
+
+Color lerpColor(Color a, Color b, float t) noexcept {
+    const float clamped_t = std::clamp(t, 0.0f, 1.0f);
+    const auto blend = [clamped_t](unsigned char lhs, unsigned char rhs) {
+        return static_cast<unsigned char>(
+            static_cast<float>(lhs) + (static_cast<float>(rhs) - static_cast<float>(lhs)) * clamped_t);
+    };
+    return {blend(a.r, b.r), blend(a.g, b.g), blend(a.b, b.b), blend(a.a, b.a)};
+}
+
+Color pressureHeatColor(float normalized_pressure) noexcept {
+    const float clamped = std::clamp(normalized_pressure, 0.0f, 1.0f);
+    if (clamped < 0.33f) {
+        return lerpColor(Color {56, 189, 248, 255}, Color {34, 197, 94, 255}, clamped / 0.33f);
+    }
+    if (clamped < 0.66f) {
+        return lerpColor(Color {34, 197, 94, 255}, Color {251, 191, 36, 255}, (clamped - 0.33f) / 0.33f);
+    }
+    return lerpColor(Color {251, 191, 36, 255}, Color {239, 68, 68, 255}, (clamped - 0.66f) / 0.34f);
 }
 
 double blend3(double t, double a, double b, double c) noexcept {
@@ -701,6 +722,9 @@ struct MeshGenerator::Impl {
     ::Material fin_material {};
     ::Material payload_material {};
     ::Material motor_material {};
+    std::array<double, static_cast<std::size_t>(CfdComponentBand::Count)> pressure_overlay_pa {};
+    double pressure_reference_pa {1.0};
+    bool pressure_overlay_enabled {false};
     bool built {false};
 
     void unloadComponent(ComponentMeshGpu& component) {
@@ -781,6 +805,32 @@ struct MeshGenerator::Impl {
             UnloadMesh(component.gpu_mesh);
         }
         component.gpu_mesh = uploadMesh(component.topology);
+    }
+
+    void applyPressureOverlay() {
+        const auto component_color = [&](ComponentMaterial material, CfdComponentBand band) {
+            const Color base = materialBaseColor(material);
+            if (!pressure_overlay_enabled) {
+                return base;
+            }
+            const double ratio =
+                pressure_overlay_pa[static_cast<std::size_t>(band)] / std::max(pressure_reference_pa, 1.0);
+            const float normalized = std::clamp(static_cast<float>(std::sqrt(std::max(ratio, 0.0))), 0.0f, 1.0f);
+            return lerpColor(base, pressureHeatColor(normalized), 0.72f * normalized);
+        };
+
+        body_material.maps[MATERIAL_MAP_DIFFUSE].color =
+            component_color(geometry.body_material, CfdComponentBand::BodyTube);
+        nose_material.maps[MATERIAL_MAP_DIFFUSE].color =
+            component_color(geometry.nose_material, CfdComponentBand::NoseCone);
+        transition_material.maps[MATERIAL_MAP_DIFFUSE].color =
+            component_color(geometry.transition_material, CfdComponentBand::Transition);
+        fin_material.maps[MATERIAL_MAP_DIFFUSE].color =
+            component_color(geometry.fin_material, CfdComponentBand::FinSet);
+        payload_material.maps[MATERIAL_MAP_DIFFUSE].color =
+            component_color(geometry.payload_material, CfdComponentBand::Payload);
+        motor_material.maps[MATERIAL_MAP_DIFFUSE].color =
+            component_color(ComponentMaterial::Aluminum6061, CfdComponentBand::MotorMount);
     }
 };
 
@@ -874,6 +924,7 @@ void MeshGenerator::rebuild(const VehicleGeometry& geometry, const MotorCluster&
     impl_->fin_material.maps[MATERIAL_MAP_DIFFUSE].color = materialBaseColor(geometry.fin_material);
     impl_->payload_material.maps[MATERIAL_MAP_DIFFUSE].color = materialBaseColor(geometry.payload_material);
     impl_->motor_material.maps[MATERIAL_MAP_DIFFUSE].color = Color {190, 200, 214, 255};
+    impl_->applyPressureOverlay();
     impl_->built = true;
 }
 
@@ -882,6 +933,7 @@ void MeshGenerator::draw(const FlightState& state) const {
         return;
     }
 
+    impl_->applyPressureOverlay();
     const ::Matrix transform = bodyToWorldTransform(state);
     DrawMesh(impl_->body.gpu_mesh, impl_->body_material, transform);
     DrawMesh(impl_->nose.gpu_mesh, impl_->nose_material, transform);
@@ -895,6 +947,15 @@ void MeshGenerator::draw(const FlightState& state) const {
     if (impl_->motor.gpu_mesh.vertexCount > 0) {
         DrawMesh(impl_->motor.gpu_mesh, impl_->motor_material, transform);
     }
+}
+
+void MeshGenerator::setPressureOverlay(
+    const std::array<double, static_cast<std::size_t>(CfdComponentBand::Count)>& component_pressure_pa,
+    double reference_pressure_pa,
+    bool enabled) noexcept {
+    impl_->pressure_overlay_pa = component_pressure_pa;
+    impl_->pressure_reference_pa = std::max(reference_pressure_pa, 1.0);
+    impl_->pressure_overlay_enabled = enabled;
 }
 
 void MeshGenerator::drawWireframe(const FlightState& state) const {

@@ -63,6 +63,7 @@ Those files remain in the repository as UI prototype/reference material, but the
 ### Wind Tunnel / Aero Diagnostics
 
 - integrated CFD-inspired view in the simulation workspace
+- pressure heatmap projected directly on the 3D rocket mesh
 - external `F3` monitor window on Windows only
 - flow regime readout, pressure envelope, streamline rendering, component load cards
 - synthetic shockwave and aeroelastic indicators
@@ -137,6 +138,7 @@ ui/               Slint prototype assets not used by the active build
 - only `Open-Meteo` works zero-config today; `OpenWeatherMap` requires `OPENWEATHERMAP_API_KEY`
 - weather fetch is manual from the scenario panel, not yet auto-refresh or background sync
 - the CFD layer is diagnostic and heuristic, not a full volumetric solver
+- the particle CFD neighborhood model is improved but still approximate, not a real Navier-Stokes solver
 - the Slint frontend in the repository is not the active UI path
 
 ## Contributing

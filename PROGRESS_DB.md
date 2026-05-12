@@ -86,12 +86,14 @@ Current reality:
 ### Aero / CFD Diagnostics
 
 - in-workspace wind tunnel panel: implemented
+- wind tunnel panel readability pass with dedicated module split: implemented
 - external `F3` wind-tunnel monitor: implemented on Windows
 - component-oriented aero cards: implemented
 - synthetic shockwave and aeroelastic metrics: implemented
 - real-time particle field for CFD-style diagnostics: implemented
+- local neighborhood smoothing for particle density/alignment: first robustness pass implemented
 - CFD force/moment augmentation into flight model: implemented
-- pressure heatmap directly on 3D mesh: not yet implemented
+- pressure heatmap directly on 3D mesh: implemented
 - full CFD solver with convergence model: not yet implemented
 
 ## Current User-Facing Capabilities
@@ -110,6 +112,7 @@ Current reality:
 
 - topology editing is usable, but still first-generation
 - CFD diagnostics are informative, but still heuristic
+- pressure heatmap is now available on the 3D mesh, but it is driven by component-band pressure estimates rather than per-face CFD
 - weather sources are connected to live providers, but fetch is still manual and synchronous
 
 ### Not Yet Productized
@@ -140,4 +143,5 @@ Current reality:
 - connect live weather providers
 - move `src/app/*.inl` into stronger `.hpp/.cpp` modules
 - deepen topology editing beyond the current first operator set
+- continue refining CFD particle neighborhoods and pressure visualization fidelity
 - add historical simulation graphs and richer comparison tools

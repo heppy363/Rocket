@@ -198,6 +198,8 @@ void RealTimeCfdField::update(
     const int grid_w = 40;
     const int grid_h = 24;
     std::array<int, grid_w * grid_h> cell_counts {};
+    std::array<double, grid_w * grid_h> cell_velocity_x_sum {};
+    std::array<double, grid_w * grid_h> cell_velocity_y_sum {};
 
     const auto sampleVelocity = [&](double x_norm, double y_norm) {
         const double rel_x = x_norm - center_x;
@@ -268,18 +270,46 @@ void RealTimeCfdField::update(
 
         const int grid_x = std::clamp(static_cast<int>(particle.x_norm * grid_w), 0, grid_w - 1);
         const int grid_y = std::clamp(static_cast<int>(particle.y_norm * grid_h), 0, grid_h - 1);
-        ++cell_counts[static_cast<std::size_t>(grid_y * grid_w + grid_x)];
+        const std::size_t cell_index = static_cast<std::size_t>(grid_y * grid_w + grid_x);
+        ++cell_counts[cell_index];
+        cell_velocity_x_sum[cell_index] += particle.vx_normps;
+        cell_velocity_y_sum[cell_index] += particle.vy_normps;
         particle.kinetic_energy = 0.5 * air_density * std::pow(std::sqrt(particle.vx_normps * particle.vx_normps + particle.vy_normps * particle.vy_normps) * air_speed_mps, 2.0);
     }
 
     for (Particle& particle : particles_) {
         const int grid_x = std::clamp(static_cast<int>(particle.x_norm * grid_w), 0, grid_w - 1);
         const int grid_y = std::clamp(static_cast<int>(particle.y_norm * grid_h), 0, grid_h - 1);
-        const int occupancy = cell_counts[static_cast<std::size_t>(grid_y * grid_w + grid_x)];
-        if (occupancy > (recovery_flow ? 24 : 18)) {
-            const double spread = static_cast<double>(occupancy - 18) / 18.0;
-            particle.y_norm += (nextUnitRandom() - 0.5) * (recovery_flow ? 0.008 : 0.018) * spread;
-            particle.x_norm -= (recovery_flow ? 0.003 : 0.006) * spread;
+        int neighborhood_occupancy = 0;
+        double neighborhood_vx = 0.0;
+        double neighborhood_vy = 0.0;
+        int contributing_cells = 0;
+        for (int y_offset = -1; y_offset <= 1; ++y_offset) {
+            for (int x_offset = -1; x_offset <= 1; ++x_offset) {
+                const int neighbor_x = std::clamp(grid_x + x_offset, 0, grid_w - 1);
+                const int neighbor_y = std::clamp(grid_y + y_offset, 0, grid_h - 1);
+                const std::size_t neighbor_index = static_cast<std::size_t>(neighbor_y * grid_w + neighbor_x);
+                neighborhood_occupancy += cell_counts[neighbor_index];
+                neighborhood_vx += cell_velocity_x_sum[neighbor_index];
+                neighborhood_vy += cell_velocity_y_sum[neighbor_index];
+                ++contributing_cells;
+            }
+        }
+
+        const double smoothed_occupancy =
+            static_cast<double>(neighborhood_occupancy) / std::max(contributing_cells, 1);
+        if (smoothed_occupancy > (recovery_flow ? 22.0 : 16.0)) {
+            const double spread =
+                (smoothed_occupancy - (recovery_flow ? 22.0 : 16.0)) / (recovery_flow ? 22.0 : 16.0);
+            particle.y_norm += (nextUnitRandom() - 0.5) * (recovery_flow ? 0.007 : 0.015) * spread;
+            particle.x_norm -= (recovery_flow ? 0.0025 : 0.0055) * spread;
+        }
+
+        if (neighborhood_occupancy > 0) {
+            const double average_vx = neighborhood_vx / static_cast<double>(neighborhood_occupancy);
+            const double average_vy = neighborhood_vy / static_cast<double>(neighborhood_occupancy);
+            particle.vx_normps = particle.vx_normps * 0.92 + average_vx * 0.08;
+            particle.vy_normps = particle.vy_normps * 0.92 + average_vy * 0.08;
         }
     }
 

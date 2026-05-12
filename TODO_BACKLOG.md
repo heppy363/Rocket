@@ -30,8 +30,8 @@ Ultimo aggiornamento: `2026-05-12`
 ## Aero / CFD
 
 - [~] Continuare a rendere piu leggibile e coerente il pannello `Wind Tunnel`.
-- [ ] Portare la heatmap di pressione direttamente sulla mesh 3D del razzo.
-- [ ] Raffinare il solver particellare con neighborhood search piu robusta.
+- [x] Portare la heatmap di pressione direttamente sulla mesh 3D del razzo.
+- [~] Raffinare il solver particellare con neighborhood search piu robusta.
 - [ ] Evolvere shockwave e aeroelastic metrics da euristiche a modelli piu fisici.
 - [ ] Chiarire in UI la differenza tra diagnostica CFD-style e solver CFD reale.
 
