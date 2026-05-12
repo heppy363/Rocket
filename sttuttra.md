@@ -40,9 +40,16 @@ Percorso applicativo attivo:
 - `include/rocket/Forces.hpp`: somma di forze e momenti del runtime.
 - `include/rocket/CfdModule.hpp`: diagnostica CFD-style e augmentation aero.
 - `include/rocket/RungeKutta4.hpp`: integrazione numerica.
+- `include/rocket/SimulationCore.hpp`: helper core per stato iniziale, snapshot e monitor state.
+- `include/rocket/SimulationRuntime.hpp`: struttura dati runtime della missione.
+- `include/rocket/SimulationEngine.hpp`: stepping, replay e sampling del runtime.
+- `include/rocket/Validation.hpp`: validazione esplicita con `std::expected`.
+- `include/rocket/WeatherProvider.hpp`: provider meteo live e fetch HTTP.
 - `include/rocket/MeshGenerator.hpp`: mesh procedurali, cache topologiche e editing base.
 - `include/rocket/SimulationMonitor.hpp`: stato pubblicato alla finestra esterna.
 - `include/rocket/SecureValidation.hpp`: clamp e validazioni di sicurezza.
+- `include/rocket/Concepts.hpp`: concepts moderni per API core e template constrained.
+- `include/rocket/Units.hpp`: strong-value type di base per alcune unita`.
 - `include/rocket/MathTypes.hpp`: vettori, quaternioni e algebra base.
 - `include/rocket/PhysicalConstants.hpp`: costanti globali.
 
@@ -54,6 +61,10 @@ Percorso applicativo attivo:
 - `src/Forces.cpp`: drag, lift laterale, recovery, thrust e momenti.
 - `src/CfdModule.cpp`: diagnostica realtime del flusso.
 - `src/RungeKutta4.cpp`: stepping numerico.
+- `src/SimulationCore.cpp`: snapshot e adapter puri tra fisica e monitor.
+- `src/SimulationEngine.cpp`: runtime della missione estratto dalla UI.
+- `src/Validation.cpp`: validazione input e stato simulazione.
+- `src/WeatherProvider.cpp`: fetch HTTP e parsing provider meteo.
 
 ## Application Sources
 
@@ -68,6 +79,7 @@ Questi file sono inclusi da `src/RocketApp.cpp` e rappresentano la UI/interactio
 
 - `src/app/RocketAppState.inl`: stato applicativo, runtime missione, helper di rebuild e snapshot.
 - `src/app/RocketAppInteraction.inl`: camera, picking, handle, grid, mesh editing, replay.
+- `src/app/RocketAppUiTrajectory.inl`: rendering traiettoria, replay ghost e marker di volo.
 - `src/app/RocketAppUiCommon.inl`: primitive UI e utility condivise.
 - `src/app/RocketAppUiModeling.inl`: pannelli e workflow del workspace `Modelazione`.
 - `src/app/RocketAppUiSimulation.inl`: pannelli e workflow del workspace `Simulazione`.

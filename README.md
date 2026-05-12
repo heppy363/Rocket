@@ -1,6 +1,6 @@
 # Rocket Simulator / The Rocket Lab
 
-Desktop prototype in C++20 for procedural rocket modeling, 3D inspection, and flight simulation.
+Desktop prototype in C++23 for procedural rocket modeling, 3D inspection, and flight simulation.
 
 ## Current Project State
 
@@ -56,6 +56,8 @@ Those files remain in the repository as UI prototype/reference material, but the
 - trajectory history and event markers
 - clustered motors with failure toggles
 - configurable scenario inputs for launch elevation, wind, gust, direction, and recovery
+- live fetch of surface weather from `Open-Meteo`
+- live fetch path for `OpenWeatherMap` with `OPENWEATHERMAP_API_KEY`
 - live telemetry for altitude, velocity, Mach, AoA, dynamic pressure, CG/CP, and static margin
 
 ### Wind Tunnel / Aero Diagnostics
@@ -91,6 +93,7 @@ Those files remain in the repository as UI prototype/reference material, but the
 - `Ctrl+Shift+S`: choose save path and save project
 - `Ctrl+O`: load a `.rlab` project
 - `Ctrl+E`: export text report and trajectory CSV
+- simulation scenario panel: cycle weather source and use `Fetch Weather Now`
 
 ## Build
 
@@ -131,8 +134,8 @@ ui/               Slint prototype assets not used by the active build
 ## Current Limitations
 
 - the external monitor window is Windows-specific
-- the weather providers are prepared in the model but not yet connected to live HTTP fetch
-- mesh topology edits are runtime-only and not yet serialized
+- only `Open-Meteo` works zero-config today; `OpenWeatherMap` requires `OPENWEATHERMAP_API_KEY`
+- weather fetch is manual from the scenario panel, not yet auto-refresh or background sync
 - the CFD layer is diagnostic and heuristic, not a full volumetric solver
 - the Slint frontend in the repository is not the active UI path
 

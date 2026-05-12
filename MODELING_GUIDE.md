@@ -210,8 +210,8 @@ They are useful as starting points before local refinement.
 
 ## Practical Limits Of The Current System
 
-- topology edits are not yet serialized
-- a full procedural rebuild can replace locally edited topology
+- topology edits are serialized in `.rlab` projects
+- a full procedural rebuild can still replace locally edited topology
 - topology tools are intentionally minimal and not yet Blender-level
 - there is no true undo stack yet
 

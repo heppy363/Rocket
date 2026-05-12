@@ -19,6 +19,7 @@ Current reality:
 
 - `RocketApp.cpp`: implemented and active
 - `src/app/*.inl`: implemented and actively used by the main app
+- `src/app/RocketAppUiTrajectory.inl`: extracted from common UI helpers to keep files bounded and cleaner
 - `SimulationMonitor.cpp`: implemented; external monitor available on Windows
 - `RocketSlintApp.cpp`: present but not compiled in current `CMake`
 - `ui/rocket_lab.slint`: reference/prototype only
@@ -36,7 +37,7 @@ Current reality:
 - mesh selection modes `Vertex / Edge / Face`: implemented
 - topology operators `Extrude Face / Bevel Face / Loop Cut Edge`: first implementation completed
 - true gizmo-style transform tools for topology editing: not yet implemented
-- serialization of topology edits: not yet implemented
+- serialization of topology edits: implemented
 
 ### Mesh System
 
@@ -67,7 +68,10 @@ Current reality:
 - atmosphere derived from site and altitude: implemented
 - wind-relative velocity: implemented
 - provider enum and query URL helper: implemented
-- live weather fetch: not yet implemented
+- live weather fetch service: implemented
+- `Open-Meteo` runtime fetch + parsing: implemented
+- `OpenWeatherMap` runtime fetch + parsing: implemented when `OPENWEATHERMAP_API_KEY` is present
+- auto refresh / async polling / forecast blending: not yet implemented
 
 ### Data & Project Workflow
 
@@ -77,7 +81,7 @@ Current reality:
 - save/load of topology overrides for edited meshes: implemented
 - text report export: implemented
 - trajectory CSV export: implemented
-- file picker workflow: not yet implemented
+- file picker workflow: implemented
 
 ### Aero / CFD Diagnostics
 
@@ -106,14 +110,14 @@ Current reality:
 
 - topology editing is usable, but still first-generation
 - CFD diagnostics are informative, but still heuristic
-- weather sources are modeled in code, but not yet connected to network providers
+- weather sources are connected to live providers, but fetch is still manual and synchronous
 
 ### Not Yet Productized
 
 - project save/load
-- export pipeline is now available in first form, but still minimal
+- export pipeline is available and usable, but still not rich enough for full analysis workflows
 - persistent undo/redo
-- live online weather
+- background online weather sync
 - graph-heavy simulation history UI
 
 ## Architectural Decisions Locked In
@@ -127,14 +131,13 @@ Current reality:
 ## Immediate Risks / Technical Debt
 
 - the `src/app/*.inl` split is better than the old monolith, but still transitional
-- topology edits reset with full procedural rebuilds and are not serialized
+- topology edits are serialized, but a full procedural rebuild can still replace local edits
 - some documentation previously described Slint as primary even though the build no longer does
 - the CFD naming can suggest higher fidelity than the current heuristic model actually provides
 
 ## Next High-Value Moves
 
 - connect live weather providers
-- persist project state and topology edits
 - move `src/app/*.inl` into stronger `.hpp/.cpp` modules
 - deepen topology editing beyond the current first operator set
 - add historical simulation graphs and richer comparison tools

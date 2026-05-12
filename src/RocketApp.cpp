@@ -27,6 +27,7 @@
 #include "rocket/SimulationMonitor.hpp"
 #include "rocket/SimulationRuntime.hpp"
 #include "rocket/VehicleModel.hpp"
+#include "rocket/WeatherProvider.hpp"
 
 namespace {
 

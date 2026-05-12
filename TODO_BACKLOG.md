@@ -4,9 +4,9 @@ Ultimo aggiornamento: `2026-05-12`
 
 ## Highest Priority
 
-- [ ] Collegare davvero i provider meteo al runtime con fetch HTTP reale e parsing risposta.
-- [ ] Rendere persistenti e serializzabili preset, geometria e topology edits.
-- [ ] Portare i moduli `src/app/*.inl` verso coppie `.hpp/.cpp` piu pulite.
+- [~] Collegare davvero i provider meteo al runtime con fetch HTTP reale e parsing risposta.
+- [x] Rendere persistenti e serializzabili preset, geometria e topology edits.
+- [~] Portare i moduli `src/app/*.inl` verso coppie `.hpp/.cpp` piu pulite.
 - [ ] Migliorare il workflow mesh con gizmo piu chiari, selezione piu precisa e operazioni topologiche meno fragili.
 
 ## Modeling
@@ -39,7 +39,7 @@ Ultimo aggiornamento: `2026-05-12`
 
 - [x] Definire un formato progetto `.rlab`.
 - [x] Salvare configurazione veicolo, materiali, scenario e topology edits.
-- [~] Preparare export di report e dati simulazione.
+- [x] Preparare export di report e dati simulazione.
 
 ## Nice To Have
 

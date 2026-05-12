@@ -27,6 +27,7 @@ add_library(rocket_core STATIC
     src/SimulationCore.cpp
     src/SimulationEngine.cpp
     src/Validation.cpp
+    src/WeatherProvider.cpp
 )
 
 target_include_directories(rocket_core
@@ -49,7 +50,7 @@ target_link_libraries(rocket_sim
 )
 
 if (WIN32)
-    target_link_libraries(rocket_core PUBLIC Comdlg32)
+    target_link_libraries(rocket_core PUBLIC Comdlg32 Winhttp)
 endif()
 
 if (BUILD_TESTING)

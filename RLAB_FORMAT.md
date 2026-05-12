@@ -79,10 +79,13 @@ The topology override is what allows edited meshes to survive project save/load 
 
 - format versioning exists but migration logic is still minimal
 - reports and trajectory exports are separate files, not embedded in `.rlab`
-- no file picker yet: the app currently uses fixed default save/export paths
+- the format is still line-oriented and custom, not schema-driven
+- there is no embedded binary payload for large mesh assets or replay history
 
 ## Current Default Paths In App
 
-- project save/load: `projects/rocket_lab_current.rlab`
-- report export: `exports/rocket_lab_report.txt`
-- trajectory export: `exports/rocket_lab_trajectory.csv`
+- initial project path: `projects/rocket_lab_current.rlab`
+- initial report path: `exports/rocket_lab_report.txt`
+- initial trajectory path: `exports/rocket_lab_trajectory.csv`
+
+These are default suggestions only. The active app now exposes native file dialogs for save, save-as, load, report export, and CSV export.

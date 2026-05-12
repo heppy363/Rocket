@@ -746,11 +746,7 @@ void drawSimulationScenario(
     const ::Rectangle manual_button {bounds.x + 18.0f, row_y + 4.0f, bounds.width - 36.0f, 30.0f};
     if (drawButton(
             manual_button,
-            environment.weatherDataSource() == rocket::WeatherDataSource::OpenMeteoReady
-                ? "Weather Source: Open-Meteo Ready"
-                : environment.weatherDataSource() == rocket::WeatherDataSource::OpenWeatherMapReady
-                      ? "Weather Source: OpenWeather Ready"
-                      : "Weather Source: Manual",
+            std::format("Weather Source: {}", rocket::weatherSourceLabel(environment.weatherDataSource())),
             true,
             Color {84, 136, 199, 224},
             ButtonStyle::Outlined)) {
@@ -761,6 +757,37 @@ void drawSimulationScenario(
                       ? rocket::WeatherDataSource::OpenWeatherMapReady
                       : rocket::WeatherDataSource::Manual;
         environment.setWeatherDataSource(next_source);
+    }
+    row_y += 42.0f;
+
+    if (environment.weatherDataSource() != rocket::WeatherDataSource::Manual) {
+        const ::Rectangle fetch_weather_button {bounds.x + 18.0f, row_y, bounds.width - 36.0f, 32.0f};
+        if (drawButton(
+                fetch_weather_button,
+                "Fetch Weather Now",
+                false,
+                Color {25, 165, 124, 224},
+                ButtonStyle::Outlined)) {
+            const auto fetched = rocket::refreshEnvironmentWeather(environment);
+            if (fetched) {
+                resetSimulationRuntime(vehicle, runtime);
+                setTransientStatus(
+                    app_state,
+                    std::format(
+                        "Meteo aggiornato da {}: {:.1f} C, {:.1f} hPa, vento {:.1f} m/s",
+                        fetched->provider_name,
+                        fetched->weather.temperature_c,
+                        fetched->weather.pressure_hpa,
+                        fetched->weather.wind_speed_mps),
+                    5.0);
+            } else {
+                setTransientStatus(
+                    app_state,
+                    std::format("Fetch meteo fallita: {}", fetched.error()),
+                    6.0);
+            }
+        }
+        row_y += 40.0f;
     }
 
     DrawText("Cluster motori", static_cast<int>(bounds.x) + 18, static_cast<int>(row_y), 18, Color {226, 232, 240, 255});
@@ -780,11 +807,7 @@ void drawSimulationScenario(
     }
 
     DrawText(
-        environment.weatherDataSource() == rocket::WeatherDataSource::OpenMeteoReady
-            ? "Source  Open-Meteo"
-            : environment.weatherDataSource() == rocket::WeatherDataSource::OpenWeatherMapReady
-                  ? "Source  OpenWeatherMap"
-                  : "Source  Manual",
+        std::format("Source  {}", rocket::weatherSourceLabel(environment.weatherDataSource())).c_str(),
         static_cast<int>(bounds.x) + 18,
         static_cast<int>(bounds.y + bounds.height - 34.0f),
         14,
