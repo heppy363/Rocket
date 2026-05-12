@@ -850,7 +850,7 @@ void handleGeometryEdits(
             const ::Rectangle reset_button {
                 bounds.x + 16.0f, row_y, bounds.width - 32.0f, 28.0f};
             if (drawButton(reset_button, "Resetta Vertici", false, Color {239, 68, 68, 220}, ButtonStyle::Outlined)) {
-                active_modifiers->modified_vertices.clear();
+                clearComponentEdits(vehicle, component_type);
                 mesh_generator.rebuild(vehicle.geometry, vehicle.cluster);
                 syncActiveMeshVertices(app_state, vehicle, mesh_generator);
             }

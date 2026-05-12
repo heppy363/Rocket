@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 project(RocketSimulator LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -19,7 +19,11 @@ add_library(rocket_core STATIC
     src/DesignLibrary.cpp
     src/Environment.cpp
     src/Forces.cpp
+    src/NativeFileDialog.cpp
+    src/ProjectIO.cpp
     src/RungeKutta4.cpp
+    src/SimulationCore.cpp
+    src/Validation.cpp
 )
 
 target_include_directories(rocket_core
@@ -40,3 +44,7 @@ target_link_libraries(rocket_sim
         raylib
         raylib_cpp
 )
+
+if (WIN32)
+    target_link_libraries(rocket_core PUBLIC Comdlg32)
+endif()

@@ -297,6 +297,16 @@ struct AppState {
     double mesh_extrude_distance_m {0.03};
     double mesh_bevel_ratio {0.22};
     double mesh_bevel_offset_m {0.008};
+    std::string transient_status_message {};
+    double transient_status_expire_time_s {};
+    bool request_project_save {};
+    bool request_project_save_as {};
+    bool request_project_load {};
+    bool request_project_export {};
+    bool show_project_workflow_panel {true};
+    std::filesystem::path current_project_path {"projects/rocket_lab_current.rlab"};
+    std::filesystem::path current_report_path {"exports/rocket_lab_report.txt"};
+    std::filesystem::path current_trajectory_csv_path {"exports/rocket_lab_trajectory.csv"};
 };
 
 void rebuildVehicle(
@@ -305,6 +315,150 @@ void rebuildVehicle(
     SimulationRuntime& runtime);
 
 bool isMouseOverModelingUi(const AppState& app_state);
+
+void setTransientStatus(AppState& app_state, std::string message, double duration_s = 4.0) {
+    app_state.transient_status_message = std::move(message);
+    app_state.transient_status_expire_time_s = GetTime() + duration_s;
+}
+
+rocket::ProjectMotorSettings deriveProjectMotorSettings(const rocket::MotorCluster& cluster) {
+    rocket::ProjectMotorSettings settings;
+    settings.motor_count = static_cast<int>(cluster.motorCount());
+    const auto& motors = cluster.mountedMotors();
+    if (motors.empty()) {
+        return settings;
+    }
+
+    settings.max_thrust_n = motors.front().motor.max_thrust_n;
+    settings.burn_time_s = motors.front().motor.burn_time_s;
+    settings.propellant_mass_kg = motors.front().motor.propellant_mass_kg;
+    settings.mount_radius_m = motors.front().mount_position_m.magnitude();
+    const rocket::Vector3 thrust = motors.front().thrust_direction_body.normalized();
+    settings.cant_angle_deg =
+        std::acos(std::clamp(thrust.z, -1.0, 1.0)) * (180.0 / pi);
+    return settings;
+}
+
+void applyProjectMotorSettings(MotorEditorState& editor, const rocket::ProjectMotorSettings& settings) {
+    editor.motor_count = settings.motor_count;
+    editor.max_thrust_n = settings.max_thrust_n;
+    editor.burn_time_s = settings.burn_time_s;
+    editor.propellant_mass_kg = settings.propellant_mass_kg;
+    editor.mount_radius_m = settings.mount_radius_m;
+    editor.cant_angle_deg = settings.cant_angle_deg;
+}
+
+rocket::ProjectDocument buildProjectDocument(
+    const AppState& app_state,
+    const rocket::VehicleModel& vehicle,
+    const MotorEditorState& motor_editor,
+    const rocket::Environment& environment) {
+    return {
+        .active_preset = app_state.active_preset,
+        .vehicle = vehicle,
+        .launch_site = environment.launchSite(),
+        .surface_weather = environment.surfaceWeather(),
+        .weather_source = environment.weatherDataSource(),
+        .motor_settings = {
+            .motor_count = motor_editor.motor_count,
+            .max_thrust_n = motor_editor.max_thrust_n,
+            .burn_time_s = motor_editor.burn_time_s,
+            .propellant_mass_kg = motor_editor.propellant_mass_kg,
+            .mount_radius_m = motor_editor.mount_radius_m,
+            .cant_angle_deg = motor_editor.cant_angle_deg
+        }
+    };
+}
+
+std::vector<rocket::TrajectoryRecord> buildTrajectoryRecords(const SimulationRuntime& runtime) {
+    std::vector<rocket::TrajectoryRecord> records;
+    records.reserve(runtime.trajectory_history.size());
+    for (const auto& sample : runtime.trajectory_history) {
+        records.push_back(rocket::TrajectoryRecord {
+            .time_s = sample.time_s,
+            .state = sample.state
+        });
+    }
+    return records;
+}
+
+double maxHorizontalRangeM(const SimulationRuntime& runtime) {
+    double max_range_m = 0.0;
+    for (const auto& sample : runtime.trajectory_history) {
+        max_range_m = std::max(
+            max_range_m,
+            std::sqrt(sample.state.position_m.x * sample.state.position_m.x +
+                      sample.state.position_m.y * sample.state.position_m.y));
+    }
+    return max_range_m;
+}
+
+rocket::ProjectExportSummary buildProjectExportSummary(const SimulationRuntime& runtime) {
+    return {
+        .mission_time_s = runtime.time_s,
+        .max_altitude_m = runtime.max_altitude_m,
+        .max_range_m = maxHorizontalRangeM(runtime),
+        .trajectory_sample_count = runtime.trajectory_history.size(),
+        .burnout_recorded = runtime.burnout_recorded,
+        .apogee_recorded = runtime.apogee_recorded,
+        .impact_recorded = runtime.impact_recorded,
+        .burnout_time_s = runtime.burnout_time_s,
+        .apogee_time_s = runtime.apogee_time_s,
+        .impact_time_s = runtime.impact_time_s,
+        .burnout_point_m = runtime.burnout_point_m,
+        .apogee_point_m = runtime.apogee_point_m,
+        .impact_point_m = runtime.impact_point_m
+    };
+}
+
+void syncComponentTopologyOverride(
+    rocket::VehicleModel& vehicle,
+    const rocket::MeshGenerator& mesh_generator,
+    rocket::ComponentType component) {
+    auto* override_data = vehicle.geometry.getActiveTopologyOverride(component);
+    const auto* mesh = mesh_generator.componentMesh(component);
+    if (override_data == nullptr || mesh == nullptr) {
+        return;
+    }
+
+    override_data->component_type = component;
+    override_data->is_active = true;
+    override_data->vertex_positions_body_m.clear();
+    override_data->vertex_positions_body_m.reserve(mesh->vertices.size());
+    override_data->indices = mesh->indices;
+    for (const auto& vertex : mesh->vertices) {
+        override_data->vertex_positions_body_m.push_back(vertex.position_body_m);
+    }
+}
+
+void clearComponentEdits(rocket::VehicleModel& vehicle, rocket::ComponentType component) {
+    if (auto* modifiers = vehicle.geometry.getActiveComponentModifiers(component); modifiers != nullptr) {
+        modifiers->modified_vertices.clear();
+        modifiers->is_active = false;
+    }
+    if (auto* topology = vehicle.geometry.getActiveTopologyOverride(component); topology != nullptr) {
+        topology->vertex_positions_body_m.clear();
+        topology->indices.clear();
+        topology->is_active = false;
+    }
+}
+
+void applyProjectDocument(
+    AppState& app_state,
+    const rocket::ProjectDocument& document,
+    rocket::VehicleModel& vehicle,
+    MotorEditorState& motor_editor,
+    rocket::Environment& environment,
+    rocket::MeshGenerator& mesh_generator,
+    SimulationRuntime& runtime) {
+    app_state.active_preset = document.active_preset;
+    vehicle = document.vehicle;
+    applyProjectMotorSettings(motor_editor, document.motor_settings);
+    environment.setLaunchSite(document.launch_site);
+    environment.setSurfaceWeather(document.surface_weather);
+    environment.setWeatherDataSource(document.weather_source);
+    rebuildVehicle(vehicle, mesh_generator, runtime);
+}
 
 ::Vector3 toRaylib(const rocket::Vector3& vector) {
     return {
@@ -319,13 +473,7 @@ float toWorldY(double altitude_m) {
 }
 
 rocket::FlightState buildRestState(const rocket::VehicleModel& vehicle) {
-    return {
-        .position_m = {0.0, 0.0, 0.0},
-        .velocity_mps = {0.0, 0.0, 0.0},
-        .attitude_body_to_world = {},
-        .angular_velocity_body_radps = {0.0, 0.0, 0.0},
-        .mass_kg = vehicle.dry_mass_kg + vehicle.cluster.totalPropellantMassKg()
-    };
+    return rocket::buildRestState(vehicle);
 }
 
 double modelingPreviewLiftM(const rocket::VehicleGeometry& geometry) {
@@ -340,7 +488,7 @@ double modelingPreviewLiftM(const rocket::VehicleGeometry& geometry) {
 }
 
 rocket::FlightState buildModelingPreviewState(const rocket::VehicleModel& vehicle) {
-    rocket::FlightState state = buildRestState(vehicle);
+    rocket::FlightState state = rocket::buildRestState(vehicle);
     state.position_m.z = modelingPreviewLiftM(vehicle.geometry);
     return state;
 }
@@ -566,7 +714,7 @@ void syncVehicleDerivedValues(rocket::VehicleModel& vehicle) {
 }
 
 void resetSimulationRuntime(const rocket::VehicleModel& vehicle, SimulationRuntime& runtime) {
-    runtime.initial_state = buildRestState(vehicle);
+    runtime.initial_state = rocket::buildRestState(vehicle);
     runtime.state = runtime.initial_state;
     runtime.time_s = 0.0;
     runtime.accumulator_s = 0.0;
@@ -736,51 +884,22 @@ rocket::SimulationSnapshot buildSnapshot(
     const rocket::VehicleModel& vehicle,
     const rocket::ForceResult& force_result,
     const rocket::Environment& environment,
-    const rocket::MeshGenerator& mesh_generator,
     double time_s,
     double max_altitude_m,
     int cfd_solver_particle_count = 0,
     int cfd_render_particle_count = 0) {
-    const double altitude_m = std::max(state.position_m.z, 0.0);
-    const double static_pressure_pa = environment.airPressurePa(altitude_m);
-    const double air_density_kgpm3 = environment.airDensityKgPerM3(altitude_m);
-    const double air_temperature_k = environment.airTemperatureK(altitude_m);
-    const double speed_of_sound_mps = environment.speedOfSoundMps(altitude_m);
-    return rocket::SimulationSnapshot {
-        .time_s = time_s,
-        .state = state,
-        .max_altitude_m = max_altitude_m,
-        .cg_from_nose_m = force_result.center_of_gravity_from_nose_m,
-        .cp_from_nose_m = force_result.center_of_pressure_from_nose_m,
-        .static_margin_calibers = force_result.static_margin_calibers,
-        .angle_of_attack_deg = force_result.angle_of_attack_rad * (180.0 / pi),
-        .dynamic_pressure_pa = force_result.dynamic_pressure_pa,
-        .static_pressure_pa = static_pressure_pa,
-        .total_pressure_pa = static_pressure_pa + std::max(force_result.dynamic_pressure_pa, 0.0),
-        .air_density_kgpm3 = air_density_kgpm3,
-        .air_temperature_k = air_temperature_k,
-        .speed_of_sound_mps = speed_of_sound_mps,
-        .mach_number = force_result.mach_number,
-        .relative_air_speed_mps = force_result.relative_air_velocity_world_mps.magnitude(),
-        .wind_speed_mps = force_result.wind_velocity_world_mps.magnitude(),
-        .recommended_max_dynamic_pressure_pa = rocket::estimateRecommendedMaxDynamicPressurePa(vehicle.geometry),
-        .dynamic_pressure_safety_factor =
-            rocket::estimateDynamicPressureSafetyFactor(vehicle.geometry, force_result.dynamic_pressure_pa),
-        .equivalent_structural_modulus_gpa =
-            rocket::estimateStructuralMaterialAssessment(vehicle.geometry).equivalent_modulus_gpa,
-        .equivalent_structural_density_kg_per_m3 =
-            rocket::estimateStructuralMaterialAssessment(vehicle.geometry).equivalent_density_kg_per_m3,
-        .shockwave_intensity = force_result.shockwave_intensity,
-        .aeroelastic_response = force_result.aeroelastic_response,
-        .cfd_solver_particle_count = cfd_solver_particle_count,
-        .cfd_render_particle_count = cfd_render_particle_count,
-        .parachute_deployed = force_result.parachute_deployed,
-        .nose_shape_label = mesh_generator.noseConeShapeLabel(),
-        .fin_shape_label = mesh_generator.finShapeLabel()
-    };
+    return rocket::buildSimulationSnapshot(
+        state,
+        vehicle,
+        force_result,
+        environment,
+        time_s,
+        max_altitude_m,
+        cfd_solver_particle_count,
+        cfd_render_particle_count);
 }
 
-void stepSimulationRuntime(
+std::optional<std::string> stepSimulationRuntime(
     SimulationRuntime& runtime,
     const rocket::VehicleModel& vehicle,
     const rocket::Environment& environment,
@@ -789,12 +908,16 @@ void stepSimulationRuntime(
     runtime.accumulator_s += frame_time_s;
     while (runtime.accumulator_s >= dt_s) {
         const bool was_burning = vehicle.cluster.isBurning(runtime.time_s);
-        runtime.state = rocket::integrateRk4(
+        const auto next_state = rocket::tryIntegrateRk4(
             runtime.state,
             vehicle,
             environment,
             runtime.time_s,
-            dt_s);
+            rocket::Seconds {dt_s});
+        if (!next_state) {
+            return next_state.error().message;
+        }
+        runtime.state = *next_state;
         runtime.time_s += dt_s;
         runtime.accumulator_s -= dt_s;
         runtime.max_altitude_m = std::max(runtime.max_altitude_m, runtime.state.position_m.z);
@@ -828,4 +951,5 @@ void stepSimulationRuntime(
             runtime.replay_time_s = 0.0;
         }
     }
+    return std::nullopt;
 }

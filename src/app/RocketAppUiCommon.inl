@@ -884,12 +884,20 @@ void drawModelingReferenceWindow(AppState& app_state, const ::Rectangle& bounds)
     }
 }
 
-void drawWorkspaceBar(const AppState& app_state, const SimulationRuntime& runtime) {
+void drawWorkspaceBar(AppState& app_state, const SimulationRuntime& runtime) {
     const ::Rectangle top_bar {0.0f, 0.0f, static_cast<float>(GetScreenWidth()), 64.0f};
     DrawRectangleGradientH(0, 0, GetScreenWidth(), 64, Color {10, 14, 22, 246}, Color {19, 26, 38, 246});
     DrawLineEx(Vector2 {0.0f, top_bar.height}, Vector2 {top_bar.width, top_bar.height}, 1.0f, Color {60, 72, 89, 230});
     DrawText("The Rocket Lab", 24, 14, 24, Color {244, 247, 251, 255});
     DrawText("Fluent workspace for rocket design and flight analysis", 24, 39, 11, Color {124, 139, 160, 255});
+    if (drawButton(
+            Rectangle {168.0f, 14.0f, 106.0f, 36.0f},
+            app_state.show_project_workflow_panel ? "Project ON" : "Project OFF",
+            app_state.show_project_workflow_panel,
+            Color {84, 136, 199, 224},
+            app_state.show_project_workflow_panel ? ButtonStyle::Contained : ButtonStyle::Outlined)) {
+        app_state.show_project_workflow_panel = !app_state.show_project_workflow_panel;
+    }
 
     const ::Rectangle modeling_button {286.0f, 14.0f, 176.0f, 36.0f};
     const ::Rectangle simulation_button {472.0f, 14.0f, 176.0f, 36.0f};
@@ -908,6 +916,18 @@ void drawWorkspaceBar(const AppState& app_state, const SimulationRuntime& runtim
         38,
         12,
         Color {124, 139, 160, 255});
+
+    const bool has_transient_status =
+        !app_state.transient_status_message.empty() &&
+        GetTime() <= app_state.transient_status_expire_time_s;
+    const std::string workflow_hint = has_transient_status
+        ? app_state.transient_status_message
+        : "Ctrl+S salva  |  Ctrl+Shift+S Save As  |  Ctrl+O carica  |  Ctrl+E esporta";
+    drawSingleLineClippedText(
+        Rectangle {674.0f, 51.0f, 620.0f, 12.0f},
+        workflow_hint,
+        11,
+        has_transient_status ? Color {191, 219, 254, 255} : Color {124, 139, 160, 255});
 
     if (app_state.workspace == Workspace::Simulation) {
         drawButton(
@@ -941,6 +961,70 @@ void drawWorkspaceBar(const AppState& app_state, const SimulationRuntime& runtim
             Color {84, 136, 199, 224},
             app_state.simulation_camera_mode == SimulationCameraMode::Free ? ButtonStyle::Contained : ButtonStyle::Outlined);
         DrawText("F3 apre la camera del vento esterna", 1336, 51, 11, Color {124, 139, 160, 255});
+    }
+}
+
+void drawProjectWorkflowPanel(AppState& app_state) {
+    if (!app_state.show_project_workflow_panel) {
+        return;
+    }
+
+    const ::Rectangle bounds {610.0f, 92.0f, 414.0f, 220.0f};
+    drawPanel(bounds, "Project & Export");
+
+    drawSectionCaption(
+        Rectangle {bounds.x + 16.0f, bounds.y + 46.0f, bounds.width - 32.0f, 30.0f},
+        "Percorsi attivi",
+        "Usa i pulsanti per scegliere file reali, poi salva, carica o esporta senza dipendere solo dalle scorciatoie.");
+
+    drawSingleLineClippedText(
+        Rectangle {bounds.x + 16.0f, bounds.y + 82.0f, bounds.width - 32.0f, 16.0f},
+        std::format("Project  {}", app_state.current_project_path.string()),
+        13,
+        Color {203, 213, 225, 255});
+    drawSingleLineClippedText(
+        Rectangle {bounds.x + 16.0f, bounds.y + 102.0f, bounds.width - 32.0f, 16.0f},
+        std::format("Report   {}", app_state.current_report_path.string()),
+        13,
+        Color {148, 163, 184, 255});
+    drawSingleLineClippedText(
+        Rectangle {bounds.x + 16.0f, bounds.y + 122.0f, bounds.width - 32.0f, 16.0f},
+        std::format("CSV      {}", app_state.current_trajectory_csv_path.string()),
+        13,
+        Color {148, 163, 184, 255});
+
+    const float row_w = (bounds.width - 44.0f) * 0.5f;
+    if (drawButton(
+            Rectangle {bounds.x + 16.0f, bounds.y + 150.0f, row_w, 30.0f},
+            "Save Project",
+            false,
+            Color {61, 135, 245, 228},
+            ButtonStyle::Contained)) {
+        app_state.request_project_save = true;
+    }
+    if (drawButton(
+            Rectangle {bounds.x + 28.0f + row_w, bounds.y + 150.0f, row_w, 30.0f},
+            "Save As...",
+            false,
+            Color {84, 136, 199, 224},
+            ButtonStyle::Outlined)) {
+        app_state.request_project_save_as = true;
+    }
+    if (drawButton(
+            Rectangle {bounds.x + 16.0f, bounds.y + 186.0f, row_w, 30.0f},
+            "Load...",
+            false,
+            Color {84, 136, 199, 224},
+            ButtonStyle::Outlined)) {
+        app_state.request_project_load = true;
+    }
+    if (drawButton(
+            Rectangle {bounds.x + 28.0f + row_w, bounds.y + 186.0f, row_w, 30.0f},
+            "Export Report+CSV",
+            false,
+            Color {25, 165, 124, 224},
+            ButtonStyle::Contained)) {
+        app_state.request_project_export = true;
     }
 }
 

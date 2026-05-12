@@ -37,9 +37,9 @@ Ultimo aggiornamento: `2026-05-12`
 
 ## Data & Project Workflow
 
-- [ ] Definire un formato progetto `.rlab`.
-- [ ] Salvare configurazione veicolo, materiali, scenario e topology edits.
-- [ ] Preparare export di report e dati simulazione.
+- [x] Definire un formato progetto `.rlab`.
+- [x] Salvare configurazione veicolo, materiali, scenario e topology edits.
+- [~] Preparare export di report e dati simulazione.
 
 ## Nice To Have
 

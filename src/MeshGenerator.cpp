@@ -631,6 +631,37 @@ IndexedMeshData buildFinTopology(const VehicleGeometry& geometry) {
     return std::move(buffers.topology);
 }
 
+IndexedMeshData buildOverrideTopology(const ComponentTopologyOverride& override_data) {
+    IndexedMeshData topology;
+    if (!override_data.is_active ||
+        override_data.vertex_positions_body_m.size() < 3 ||
+        override_data.indices.size() < 3 ||
+        override_data.indices.size() % 3 != 0) {
+        return topology;
+    }
+
+    topology.vertices.reserve(override_data.vertex_positions_body_m.size());
+    for (const auto& position : override_data.vertex_positions_body_m) {
+        topology.vertices.push_back(MeshVertexData {
+            .position_body_m = position,
+            .normal_body = {},
+            .u = 0.0,
+            .v = 0.0
+        });
+    }
+
+    topology.indices = override_data.indices;
+    const bool valid_indices = std::all_of(topology.indices.begin(), topology.indices.end(), [&](unsigned int index) {
+        return static_cast<std::size_t>(index) < topology.vertices.size();
+    });
+    if (!valid_indices) {
+        return {};
+    }
+
+    recomputeNormals(topology);
+    return topology;
+}
+
 void applyVertexModifiers(ComponentType component, const VehicleGeometry& geometry, IndexedMeshData& topology) {
     const auto* modifiers = geometry.getActiveComponentModifiers(component);
     if (modifiers == nullptr) {
@@ -773,6 +804,49 @@ void MeshGenerator::rebuild(const VehicleGeometry& geometry, const MotorCluster&
     impl_->fin.topology = buildFinTopology(geometry);
     impl_->payload.topology = buildPayloadTopology(geometry);
     impl_->motor.topology = buildMotorTopology(geometry, cluster);
+
+    if (const auto* override_data = geometry.getActiveTopologyOverride(ComponentType::BodyTube);
+        override_data != nullptr && override_data->is_active) {
+        if (IndexedMeshData override_topology = buildOverrideTopology(*override_data);
+            !override_topology.vertices.empty()) {
+            impl_->body.topology = std::move(override_topology);
+        }
+    }
+    if (const auto* override_data = geometry.getActiveTopologyOverride(ComponentType::NoseCone);
+        override_data != nullptr && override_data->is_active) {
+        if (IndexedMeshData override_topology = buildOverrideTopology(*override_data);
+            !override_topology.vertices.empty()) {
+            impl_->nose.topology = std::move(override_topology);
+        }
+    }
+    if (const auto* override_data = geometry.getActiveTopologyOverride(ComponentType::Transition);
+        override_data != nullptr && override_data->is_active) {
+        if (IndexedMeshData override_topology = buildOverrideTopology(*override_data);
+            !override_topology.vertices.empty()) {
+            impl_->transition.topology = std::move(override_topology);
+        }
+    }
+    if (const auto* override_data = geometry.getActiveTopologyOverride(ComponentType::FinSet);
+        override_data != nullptr && override_data->is_active) {
+        if (IndexedMeshData override_topology = buildOverrideTopology(*override_data);
+            !override_topology.vertices.empty()) {
+            impl_->fin.topology = std::move(override_topology);
+        }
+    }
+    if (const auto* override_data = geometry.getActiveTopologyOverride(ComponentType::Payload);
+        override_data != nullptr && override_data->is_active) {
+        if (IndexedMeshData override_topology = buildOverrideTopology(*override_data);
+            !override_topology.vertices.empty()) {
+            impl_->payload.topology = std::move(override_topology);
+        }
+    }
+    if (const auto* override_data = geometry.getActiveTopologyOverride(ComponentType::MotorMount);
+        override_data != nullptr && override_data->is_active) {
+        if (IndexedMeshData override_topology = buildOverrideTopology(*override_data);
+            !override_topology.vertices.empty()) {
+            impl_->motor.topology = std::move(override_topology);
+        }
+    }
 
     applyVertexModifiers(ComponentType::BodyTube, geometry, impl_->body.topology);
     applyVertexModifiers(ComponentType::NoseCone, geometry, impl_->nose.topology);

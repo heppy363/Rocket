@@ -3,7 +3,9 @@
 #include <cctype>
 #include <cmath>
 #include <deque>
+#include <filesystem>
 #include <format>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -15,10 +17,13 @@
 #include "rocket/DesignLibrary.hpp"
 #include "rocket/Forces.hpp"
 #include "rocket/MeshGenerator.hpp"
+#include "rocket/NativeFileDialog.hpp"
 #include "rocket/PhysicalConstants.hpp"
+#include "rocket/ProjectIO.hpp"
 #include "rocket/RocketApp.hpp"
 #include "rocket/RungeKutta4.hpp"
 #include "rocket/SecureValidation.hpp"
+#include "rocket/SimulationCore.hpp"
 #include "rocket/SimulationMonitor.hpp"
 #include "rocket/VehicleModel.hpp"
 
@@ -202,12 +207,16 @@ int rocket::runRocketLabApp() {
         updateReplayTimeline(simulation_runtime, frame_time_s);
 
         if (!simulation_runtime.paused && simulation_active && !simulation_runtime.replay_active) {
-            stepSimulationRuntime(
+            if (const std::optional<std::string> step_error = stepSimulationRuntime(
                 simulation_runtime,
                 vehicle,
                 environment,
                 dt_s,
                 frame_time_s);
+                step_error.has_value()) {
+                simulation_runtime.paused = true;
+                setTransientStatus(app_state, std::format("Simulazione in pausa: {}", *step_error), 6.0);
+            }
         }
 
         const FlightState modeling_preview_state = buildModelingPreviewState(vehicle);
@@ -228,24 +237,152 @@ int rocket::runRocketLabApp() {
             frame_time_s);
         const rocket::CfdFrameData& cfd_frame = app_state.cfd_field.frame();
         const rocket::SimulationSnapshot modeling_snapshot =
-            buildSnapshot(modeling_preview_state, vehicle, modeling_force_result, environment, mesh_generator, 0.0, 0.0);
+            buildSnapshot(modeling_preview_state, vehicle, modeling_force_result, environment, 0.0, 0.0);
         const rocket::SimulationSnapshot simulation_snapshot = buildSnapshot(
             view_state,
             vehicle,
             simulation_force_result,
             environment,
-            mesh_generator,
             render_time_s,
             simulation_runtime.max_altitude_m,
             cfd_frame.solver_particle_count,
             cfd_frame.rendered_particle_count);
+        const rocket::SimulationSnapshot& active_snapshot =
+            app_state.workspace == Workspace::Modeling ? modeling_snapshot : simulation_snapshot;
 
         if (app_state.show_simulation_window) {
-            simulation_monitor.publish(buildMonitorState(
-                simulation_snapshot,
-                simulation_runtime,
-                vehicle,
-                environment));
+            simulation_monitor.publish(buildMonitorState(simulation_snapshot, simulation_runtime, vehicle, environment));
+        }
+
+        const bool ctrl_down = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
+        const bool shift_down = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
+        if (ctrl_down && shift_down && IsKeyPressed(KEY_S)) {
+            app_state.request_project_save_as = true;
+        } else if (ctrl_down && IsKeyPressed(KEY_S)) {
+            app_state.request_project_save = true;
+        }
+        if (ctrl_down && IsKeyPressed(KEY_O)) {
+            app_state.request_project_load = true;
+        }
+        if (ctrl_down && IsKeyPressed(KEY_L)) {
+            app_state.request_project_load = true;
+        }
+        if (ctrl_down && IsKeyPressed(KEY_E)) {
+            app_state.request_project_export = true;
+        }
+
+        const auto save_project = [&](const std::filesystem::path& target_path) {
+            const rocket::ProjectDocument project_document =
+                buildProjectDocument(app_state, vehicle, motor_editor, environment);
+            std::string error_message;
+            if (rocket::saveProjectDocument(target_path, project_document, error_message)) {
+                app_state.current_project_path = target_path;
+                setTransientStatus(
+                    app_state,
+                    std::format("Progetto salvato in {}", app_state.current_project_path.string()));
+            } else {
+                setTransientStatus(app_state, std::format("Salvataggio fallito: {}", error_message), 5.0);
+            }
+        };
+
+        if (app_state.request_project_save_as) {
+            std::string error_message;
+            std::filesystem::path chosen_path = app_state.current_project_path;
+            if (rocket::promptSaveFilePath(
+                    "Save Rocket Lab Project",
+                    "Rocket Lab Project (*.rlab)",
+                    "*.rlab",
+                    chosen_path,
+                    error_message)) {
+                save_project(chosen_path);
+            } else if (!error_message.empty()) {
+                setTransientStatus(app_state, std::format("Dialog save fallito: {}", error_message), 5.0);
+            }
+            app_state.request_project_save_as = false;
+        } else if (app_state.request_project_save) {
+            save_project(app_state.current_project_path);
+            app_state.request_project_save = false;
+        }
+
+        if (app_state.request_project_load) {
+            rocket::ProjectDocument loaded_document;
+            std::string error_message;
+            std::filesystem::path chosen_path = app_state.current_project_path;
+            if (rocket::promptOpenFilePath(
+                    "Load Rocket Lab Project",
+                    "Rocket Lab Project (*.rlab)",
+                    "*.rlab",
+                    chosen_path,
+                    error_message)) {
+                if (rocket::loadProjectDocument(chosen_path, loaded_document, error_message)) {
+                    app_state.current_project_path = chosen_path;
+                    applyProjectDocument(
+                        app_state,
+                        loaded_document,
+                        vehicle,
+                        motor_editor,
+                        environment,
+                        mesh_generator,
+                        simulation_runtime);
+                    setTransientStatus(
+                        app_state,
+                        std::format("Progetto caricato da {}", app_state.current_project_path.string()));
+                    app_state.request_project_load = false;
+                    continue;
+                }
+                setTransientStatus(app_state, std::format("Caricamento fallito: {}", error_message), 5.0);
+            } else if (!error_message.empty()) {
+                setTransientStatus(app_state, std::format("Dialog load fallito: {}", error_message), 5.0);
+            }
+            app_state.request_project_load = false;
+        }
+
+        if (app_state.request_project_export) {
+            const rocket::ProjectDocument project_document =
+                buildProjectDocument(app_state, vehicle, motor_editor, environment);
+            std::string error_message;
+            std::filesystem::path report_path = app_state.current_report_path;
+            std::filesystem::path csv_path = app_state.current_trajectory_csv_path;
+            if (!rocket::promptSaveFilePath(
+                    "Export Simulation Report",
+                    "Text Report (*.txt)",
+                    "*.txt",
+                    report_path,
+                    error_message)) {
+                if (!error_message.empty()) {
+                    setTransientStatus(app_state, std::format("Dialog export report fallito: {}", error_message), 5.0);
+                }
+                app_state.request_project_export = false;
+            } else if (!rocket::promptSaveFilePath(
+                           "Export Trajectory CSV",
+                           "CSV File (*.csv)",
+                           "*.csv",
+                           csv_path,
+                           error_message)) {
+                if (!error_message.empty()) {
+                    setTransientStatus(app_state, std::format("Dialog export CSV fallito: {}", error_message), 5.0);
+                }
+                app_state.request_project_export = false;
+            } else {
+                app_state.current_report_path = report_path;
+                app_state.current_trajectory_csv_path = csv_path;
+                const rocket::ProjectExportSummary export_summary =
+                    buildProjectExportSummary(simulation_runtime);
+                const std::vector<rocket::TrajectoryRecord> trajectory_records =
+                    buildTrajectoryRecords(simulation_runtime);
+                const bool report_ok =
+                    rocket::exportProjectReport(report_path, project_document, active_snapshot, export_summary, error_message);
+                const bool csv_ok =
+                    rocket::exportTrajectoryCsv(csv_path, trajectory_records, error_message);
+                if (report_ok && csv_ok) {
+                    setTransientStatus(
+                        app_state,
+                        std::format("Export completato: {} e {}", report_path.string(), csv_path.string()));
+                } else {
+                    setTransientStatus(app_state, std::format("Export fallito: {}", error_message), 5.0);
+                }
+                app_state.request_project_export = false;
+            }
         }
 
         BeginDrawing();
@@ -255,6 +392,7 @@ int rocket::runRocketLabApp() {
         DrawCircle(GetScreenWidth() - 220, 144, 84.0f, Color {219, 233, 255, 12});
 
         drawWorkspaceBar(app_state, simulation_runtime);
+        drawProjectWorkflowPanel(app_state);
 
         camera.BeginMode();
         DrawPlane(::Vector3 {0.0f, 0.0f, 0.0f}, ::Vector2 {140.0f, 140.0f}, Color {18, 24, 38, 255});

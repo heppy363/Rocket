@@ -69,6 +69,16 @@ Current reality:
 - provider enum and query URL helper: implemented
 - live weather fetch: not yet implemented
 
+### Data & Project Workflow
+
+- `.rlab` project format: first implementation completed
+- save/load of geometry, materials, scenario, recovery, motor settings, cluster state: implemented
+- save/load of free vertex modifiers: implemented
+- save/load of topology overrides for edited meshes: implemented
+- text report export: implemented
+- trajectory CSV export: implemented
+- file picker workflow: not yet implemented
+
 ### Aero / CFD Diagnostics
 
 - in-workspace wind tunnel panel: implemented
@@ -101,7 +111,7 @@ Current reality:
 ### Not Yet Productized
 
 - project save/load
-- export pipeline
+- export pipeline is now available in first form, but still minimal
 - persistent undo/redo
 - live online weather
 - graph-heavy simulation history UI

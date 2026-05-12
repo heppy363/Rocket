@@ -66,6 +66,13 @@ struct ComponentVertexModifiers {
     bool is_active {false};    // Se true, le modifiche sono abilitate per questo componente
 };
 
+struct ComponentTopologyOverride {
+    ComponentType component_type {};
+    std::vector<Vector3> vertex_positions_body_m {};
+    std::vector<unsigned int> indices {};
+    bool is_active {false};
+};
+
 struct NoseControlVertices {
     double mid_radius_scale {1.0};
     double shoulder_radius_scale {1.0};
@@ -133,6 +140,14 @@ struct VehicleGeometry {
     ComponentVertexModifiers motor_vertex_mods {};
     ComponentVertexModifiers payload_vertex_mods {};
 
+    // Override topologico persistente per supportare save/load delle mesh editate
+    ComponentTopologyOverride nose_topology_override {};
+    ComponentTopologyOverride body_topology_override {};
+    ComponentTopologyOverride transition_topology_override {};
+    ComponentTopologyOverride fin_topology_override {};
+    ComponentTopologyOverride motor_topology_override {};
+    ComponentTopologyOverride payload_topology_override {};
+
     // Metodo utility per accedere ai modifiers del componente attivo
     ComponentVertexModifiers* getActiveComponentModifiers(ComponentType component) {
         switch (component) {
@@ -167,6 +182,42 @@ struct VehicleGeometry {
             return &motor_vertex_mods;
         case ComponentType::Payload:
             return &payload_vertex_mods;
+        }
+        return nullptr;
+    }
+
+    ComponentTopologyOverride* getActiveTopologyOverride(ComponentType component) {
+        switch (component) {
+        case ComponentType::NoseCone:
+            return &nose_topology_override;
+        case ComponentType::BodyTube:
+            return &body_topology_override;
+        case ComponentType::Transition:
+            return &transition_topology_override;
+        case ComponentType::FinSet:
+            return &fin_topology_override;
+        case ComponentType::MotorMount:
+            return &motor_topology_override;
+        case ComponentType::Payload:
+            return &payload_topology_override;
+        }
+        return nullptr;
+    }
+
+    const ComponentTopologyOverride* getActiveTopologyOverride(ComponentType component) const {
+        switch (component) {
+        case ComponentType::NoseCone:
+            return &nose_topology_override;
+        case ComponentType::BodyTube:
+            return &body_topology_override;
+        case ComponentType::Transition:
+            return &transition_topology_override;
+        case ComponentType::FinSet:
+            return &fin_topology_override;
+        case ComponentType::MotorMount:
+            return &motor_topology_override;
+        case ComponentType::Payload:
+            return &payload_topology_override;
         }
         return nullptr;
     }

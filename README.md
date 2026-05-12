@@ -87,6 +87,10 @@ Those files remain in the repository as UI prototype/reference material, but the
 - `Space`: play/pause
 - `R`: reset mission
 - `K`: cycle mission keyframes
+- `Ctrl+S`: save current project to `.rlab`
+- `Ctrl+Shift+S`: choose save path and save project
+- `Ctrl+O`: load a `.rlab` project
+- `Ctrl+E`: export text report and trajectory CSV
 
 ## Build
 
@@ -120,6 +124,7 @@ ui/               Slint prototype assets not used by the active build
 - `GUI_UX_SPECIFICATION.md`: current UX direction and implemented behaviors
 - `BALLISTICS_PHYSICS_CORE.md`: implemented physics model and next physics gaps
 - `MATERIALS_DATABASE.md`: materials used by the simulation and structural estimates
+- `RLAB_FORMAT.md`: current project file format and persistence scope
 - `TODO_BACKLOG.md`: prioritized technical backlog
 - `sttuttra.md`: codebase structure map
 

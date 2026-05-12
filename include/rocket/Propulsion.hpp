@@ -21,6 +21,7 @@ struct MountedMotor {
 
 class MotorCluster {
 public:
+    MotorCluster() = default;
     explicit MotorCluster(std::vector<MountedMotor> motors);
 
     [[nodiscard]] Vector3 thrustForceN(double time_s) const noexcept;

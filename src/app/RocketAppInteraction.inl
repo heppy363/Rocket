@@ -119,17 +119,12 @@ rocket::SimulationMonitorState buildMonitorState(
     const SimulationRuntime& runtime,
     const rocket::VehicleModel& vehicle,
     const rocket::Environment& environment) {
-    return {
-        .snapshot = snapshot,
-        .geometry = vehicle.geometry,
-        .recovery_system = vehicle.recovery_system,
-        .launch_site = environment.launchSite(),
-        .surface_weather = environment.surfaceWeather(),
-        .weather_source = environment.weatherDataSource(),
-        .paused = runtime.paused,
-        .motor_burning = vehicle.cluster.isBurning(runtime.time_s),
-        .motor_count = vehicle.cluster.motorCount()
-    };
+    return rocket::buildSimulationMonitorState(
+        snapshot,
+        runtime.paused,
+        vehicle.cluster.isBurning(runtime.time_s),
+        vehicle,
+        environment);
 }
 
 void appendRingHandles(
@@ -540,6 +535,9 @@ bool applyVertexDrag(
             selectedComponentType(app_state),
             vertex.vertex_id,
             vertex.base_position_m + vertex.offset_m);
+        if (updated) {
+            syncComponentTopologyOverride(vehicle, mesh_generator, selectedComponentType(app_state));
+        }
         return updated;
     }
 
@@ -575,6 +573,7 @@ bool applyTopologyOperation(
     }
 
     if (changed) {
+        syncComponentTopologyOverride(vehicle, mesh_generator, selectedComponentType(app_state));
         syncActiveMeshVertices(app_state, vehicle, mesh_generator);
     }
     return changed;
