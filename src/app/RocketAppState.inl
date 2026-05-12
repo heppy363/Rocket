@@ -197,34 +197,8 @@ struct MotorEditorState {
     double cant_angle_deg {};
 };
 
-struct TrajectorySample {
-    rocket::FlightState state {};
-    double time_s {};
-};
-
-struct SimulationRuntime {
-    rocket::FlightState initial_state {};
-    rocket::FlightState state {};
-    double time_s {};
-    double accumulator_s {};
-    double max_altitude_m {};
-    bool paused {true};
-    std::deque<TrajectorySample> trajectory_history {};
-    bool burnout_recorded {false};
-    bool apogee_recorded {false};
-    bool impact_recorded {false};
-    bool replay_active {false};
-    double replay_time_s {};
-    rocket::Vector3 burnout_point_m {};
-    rocket::Vector3 apogee_point_m {};
-    rocket::Vector3 impact_point_m {};
-    double burnout_time_s {};
-    double apogee_time_s {};
-    double impact_time_s {};
-    bool keyframe_preview_active {false};
-    int keyframe_preview_index {-1};
-    double keyframe_preview_time_s {};
-};
+using TrajectorySample = rocket::TrajectorySample;
+using SimulationRuntime = rocket::SimulationRuntime;
 
 struct MissionKeyframe {
     const char* label {""};
@@ -713,31 +687,6 @@ void syncVehicleDerivedValues(rocket::VehicleModel& vehicle) {
     vehicle.principal_inertia_kgm2 = estimatePrincipalInertiaKgM2(vehicle.geometry, vehicle.dry_mass_kg);
 }
 
-void resetSimulationRuntime(const rocket::VehicleModel& vehicle, SimulationRuntime& runtime) {
-    runtime.initial_state = rocket::buildRestState(vehicle);
-    runtime.state = runtime.initial_state;
-    runtime.time_s = 0.0;
-    runtime.accumulator_s = 0.0;
-    runtime.max_altitude_m = 0.0;
-    runtime.paused = true;
-    runtime.burnout_recorded = false;
-    runtime.apogee_recorded = false;
-    runtime.impact_recorded = false;
-    runtime.replay_active = false;
-    runtime.replay_time_s = 0.0;
-    runtime.burnout_point_m = runtime.state.position_m;
-    runtime.apogee_point_m = runtime.state.position_m;
-    runtime.impact_point_m = runtime.state.position_m;
-    runtime.burnout_time_s = 0.0;
-    runtime.apogee_time_s = 0.0;
-    runtime.impact_time_s = 0.0;
-    runtime.keyframe_preview_active = false;
-    runtime.keyframe_preview_index = -1;
-    runtime.keyframe_preview_time_s = 0.0;
-    runtime.trajectory_history.clear();
-    runtime.trajectory_history.push_back(TrajectorySample {.state = runtime.state, .time_s = 0.0});
-}
-
 std::vector<MissionKeyframe> buildMissionKeyframes(const SimulationRuntime& runtime) {
     std::vector<MissionKeyframe> keyframes;
     keyframes.push_back(MissionKeyframe {
@@ -897,59 +846,4 @@ rocket::SimulationSnapshot buildSnapshot(
         max_altitude_m,
         cfd_solver_particle_count,
         cfd_render_particle_count);
-}
-
-std::optional<std::string> stepSimulationRuntime(
-    SimulationRuntime& runtime,
-    const rocket::VehicleModel& vehicle,
-    const rocket::Environment& environment,
-    double dt_s,
-    float frame_time_s) {
-    runtime.accumulator_s += frame_time_s;
-    while (runtime.accumulator_s >= dt_s) {
-        const bool was_burning = vehicle.cluster.isBurning(runtime.time_s);
-        const auto next_state = rocket::tryIntegrateRk4(
-            runtime.state,
-            vehicle,
-            environment,
-            runtime.time_s,
-            rocket::Seconds {dt_s});
-        if (!next_state) {
-            return next_state.error().message;
-        }
-        runtime.state = *next_state;
-        runtime.time_s += dt_s;
-        runtime.accumulator_s -= dt_s;
-        runtime.max_altitude_m = std::max(runtime.max_altitude_m, runtime.state.position_m.z);
-        if (!runtime.apogee_recorded || runtime.state.position_m.z >= runtime.apogee_point_m.z) {
-            runtime.apogee_recorded = true;
-            runtime.apogee_point_m = runtime.state.position_m;
-            runtime.apogee_time_s = runtime.time_s;
-        }
-
-        if (runtime.trajectory_history.empty() ||
-            (runtime.state.position_m - runtime.trajectory_history.back().state.position_m).magnitude() > 0.2) {
-            runtime.trajectory_history.push_back(TrajectorySample {
-                .state = runtime.state,
-                .time_s = runtime.time_s
-            });
-        }
-        if (runtime.trajectory_history.size() > 2500) {
-            runtime.trajectory_history.pop_front();
-        }
-
-        if (!runtime.burnout_recorded && was_burning && !vehicle.cluster.isBurning(runtime.time_s)) {
-            runtime.burnout_recorded = true;
-            runtime.burnout_point_m = runtime.state.position_m;
-            runtime.burnout_time_s = runtime.time_s;
-        }
-        if (!runtime.impact_recorded && runtime.time_s > 0.5 && runtime.state.position_m.z <= 0.0 && runtime.state.velocity_mps.z < 0.0) {
-            runtime.impact_recorded = true;
-            runtime.impact_point_m = runtime.state.position_m;
-            runtime.impact_time_s = runtime.time_s;
-            runtime.replay_active = true;
-            runtime.replay_time_s = 0.0;
-        }
-    }
-    return std::nullopt;
 }

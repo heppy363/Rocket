@@ -11,7 +11,6 @@ void drawPanel(const ::Rectangle& bounds, const std::string& title, Color fill =
         Color {120, 172, 255, 18});
     DrawText(title.c_str(), static_cast<int>(bounds.x) + 18, static_cast<int>(bounds.y) + 11, 18, Color {239, 243, 248, 255});
 }
-
 std::vector<std::string> wrapTextLines(
     const std::string& text,
     int font_size,
@@ -107,7 +106,6 @@ void drawWrappedText(
         y += static_cast<float>(font_size) + line_spacing;
     }
 }
-
 void drawSingleLineClippedText(
     const ::Rectangle& bounds,
     const std::string& text,
@@ -118,7 +116,6 @@ void drawSingleLineClippedText(
         DrawText(lines.front().c_str(), static_cast<int>(bounds.x), static_cast<int>(bounds.y), font_size, color);
     }
 }
-
 void drawKeyValueLine(const ::Rectangle& bounds, const std::string& label, const std::string& value) {
     const float split_x = bounds.x + std::min(126.0f, bounds.width * 0.42f);
     drawSingleLineClippedText(
@@ -132,7 +129,6 @@ void drawKeyValueLine(const ::Rectangle& bounds, const std::string& label, const
         16,
         Color {226, 232, 240, 255});
 }
-
 void drawSectionCaption(const ::Rectangle& bounds, const std::string& title, const std::string& subtitle = {}) {
     drawSingleLineClippedText(
         Rectangle {bounds.x, bounds.y, bounds.width, 18.0f},
@@ -220,121 +216,6 @@ int drawStepper(const ::Rectangle& bounds, const std::string& label, const std::
         result = 1;
     }
     return result;
-}
-
-rocket::Quaternion lerpQuaternion(const rocket::Quaternion& a, const rocket::Quaternion& b, double t) {
-    const rocket::Quaternion blended = ((1.0 - t) * a + t * b).normalized();
-    return blended.magnitude() > 0.0 ? blended : a;
-}
-
-rocket::FlightState sampleTrajectoryState(const std::deque<TrajectorySample>& history, double time_s) {
-    if (history.empty()) {
-        return {};
-    }
-    if (time_s <= history.front().time_s) {
-        return history.front().state;
-    }
-    if (time_s >= history.back().time_s) {
-        return history.back().state;
-    }
-
-    for (std::size_t index = 1; index < history.size(); ++index) {
-        const auto& previous = history[index - 1];
-        const auto& current = history[index];
-        if (time_s <= current.time_s) {
-            const double segment_time = std::max(current.time_s - previous.time_s, 1e-6);
-            const double t = std::clamp((time_s - previous.time_s) / segment_time, 0.0, 1.0);
-            return {
-                .position_m = previous.state.position_m * (1.0 - t) + current.state.position_m * t,
-                .velocity_mps = previous.state.velocity_mps * (1.0 - t) + current.state.velocity_mps * t,
-                .attitude_body_to_world = lerpQuaternion(previous.state.attitude_body_to_world, current.state.attitude_body_to_world, t),
-                .angular_velocity_body_radps = previous.state.angular_velocity_body_radps * (1.0 - t) + current.state.angular_velocity_body_radps * t,
-                .mass_kg = previous.state.mass_kg * (1.0 - t) + current.state.mass_kg * t
-            };
-        }
-    }
-
-    return history.back().state;
-}
-
-double currentRenderTime(const SimulationRuntime& runtime) {
-    if (runtime.keyframe_preview_active) {
-        return runtime.keyframe_preview_time_s;
-    }
-    return runtime.replay_active ? runtime.replay_time_s : runtime.time_s;
-}
-
-rocket::FlightState currentRenderState(const SimulationRuntime& runtime) {
-    if (runtime.keyframe_preview_active && !runtime.trajectory_history.empty()) {
-        return sampleTrajectoryState(runtime.trajectory_history, runtime.keyframe_preview_time_s);
-    }
-    if (runtime.replay_active && !runtime.trajectory_history.empty()) {
-        return sampleTrajectoryState(runtime.trajectory_history, runtime.replay_time_s);
-    }
-    return runtime.state;
-}
-
-double horizontalRangeM(const rocket::Vector3& point) {
-    return std::sqrt(point.x * point.x + point.y * point.y);
-}
-
-void drawTrajectory(const std::deque<TrajectorySample>& history) {
-    if (history.size() < 2) {
-        return;
-    }
-
-    for (std::size_t index = 1; index < history.size(); ++index) {
-        const unsigned char alpha = static_cast<unsigned char>(
-            50 + (205 * static_cast<int>(index)) / static_cast<int>(history.size()));
-        DrawLine3D(toRaylib(history[index - 1].state.position_m), toRaylib(history[index].state.position_m), Color {64, 196, 255, alpha});
-    }
-}
-
-void drawReplayGhost(const SimulationRuntime& runtime) {
-    if (!runtime.replay_active || runtime.trajectory_history.size() < 2) {
-        return;
-    }
-
-    const rocket::Vector3 replay_position = sampleTrajectoryState(runtime.trajectory_history, runtime.replay_time_s).position_m;
-    DrawSphere(toRaylib(replay_position), 0.18f, Color {251, 191, 36, 220});
-    DrawSphereWires(toRaylib(replay_position), 0.28f, 8, 8, Color {125, 211, 252, 180});
-}
-
-void drawFlightMarkers3D(const SimulationRuntime& runtime) {
-    DrawSphere(::Vector3 {0.0f, 0.0f, 0.0f}, 0.16f, Color {34, 197, 94, 255});
-
-    if (runtime.burnout_recorded) {
-        DrawSphere(toRaylib(runtime.burnout_point_m), 0.14f, Color {249, 115, 22, 255});
-    }
-    if (runtime.apogee_recorded) {
-        DrawSphere(toRaylib(runtime.apogee_point_m), 0.16f, Color {168, 85, 247, 255});
-    }
-    if (runtime.impact_recorded) {
-        DrawSphere(toRaylib(runtime.impact_point_m), 0.16f, Color {239, 68, 68, 255});
-    }
-}
-
-void drawFlightMarkerLabels(const SimulationRuntime& runtime, const raylib::Camera3D& camera) {
-    const auto draw_marker = [&](const rocket::Vector3& point, const char* label, Color color) {
-        const ::Vector2 screen = GetWorldToScreen(toRaylib(point), camera);
-        DrawText(label, static_cast<int>(screen.x) + 10, static_cast<int>(screen.y) - 8, 15, color);
-    };
-
-    draw_marker({0.0, 0.0, 0.0}, "Launch", Color {34, 197, 94, 255});
-    if (runtime.burnout_recorded) {
-        draw_marker(runtime.burnout_point_m, "Burnout", Color {249, 115, 22, 255});
-    }
-    if (runtime.apogee_recorded) {
-        draw_marker(runtime.apogee_point_m, "Apogee", Color {168, 85, 247, 255});
-    }
-    if (runtime.impact_recorded) {
-        draw_marker(runtime.impact_point_m, "Impact", Color {239, 68, 68, 255});
-    }
-
-    if (runtime.replay_active && runtime.trajectory_history.size() > 1) {
-        const rocket::Vector3 replay_position = sampleTrajectoryState(runtime.trajectory_history, runtime.replay_time_s).position_m;
-        draw_marker(replay_position, "Replay", Color {251, 191, 36, 255});
-    }
 }
 
 void drawStabilityMarkers(

@@ -1,13 +1,3 @@
-void updateReplayTimeline(SimulationRuntime& runtime, float frame_time_s) {
-    if (runtime.replay_active && !runtime.trajectory_history.empty()) {
-        runtime.replay_time_s += static_cast<double>(frame_time_s) * 0.9;
-        const double end_time_s = runtime.trajectory_history.back().time_s;
-        if (runtime.replay_time_s > end_time_s) {
-            runtime.replay_time_s = 0.0;
-        }
-    }
-}
-
 void updateModelingCadCamera(AppState& app_state, raylib::Camera3D& camera) {
     const bool mouse_over_ui = isMouseOverModelingUi(app_state);
 

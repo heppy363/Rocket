@@ -5,7 +5,6 @@
 #include <deque>
 #include <filesystem>
 #include <format>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -24,13 +23,16 @@
 #include "rocket/RungeKutta4.hpp"
 #include "rocket/SecureValidation.hpp"
 #include "rocket/SimulationCore.hpp"
+#include "rocket/SimulationEngine.hpp"
 #include "rocket/SimulationMonitor.hpp"
+#include "rocket/SimulationRuntime.hpp"
 #include "rocket/VehicleModel.hpp"
 
 namespace {
 
 #include "app/RocketAppState.inl"
 #include "app/RocketAppInteraction.inl"
+#include "app/RocketAppUiTrajectory.inl"
 #include "app/RocketAppUiCommon.inl"
 #include "app/RocketAppUiModeling.inl"
 #include "app/RocketAppUiSimulation.inl"
@@ -204,24 +206,27 @@ int rocket::runRocketLabApp() {
             camera);
 
         const float frame_time_s = GetFrameTime();
-        updateReplayTimeline(simulation_runtime, frame_time_s);
+        rocket::updateReplayTimeline(simulation_runtime, frame_time_s);
 
         if (!simulation_runtime.paused && simulation_active && !simulation_runtime.replay_active) {
-            if (const std::optional<std::string> step_error = stepSimulationRuntime(
+            if (const auto step_result = rocket::stepSimulationRuntime(
                 simulation_runtime,
                 vehicle,
                 environment,
-                dt_s,
+                rocket::Seconds {dt_s},
                 frame_time_s);
-                step_error.has_value()) {
+                !step_result) {
                 simulation_runtime.paused = true;
-                setTransientStatus(app_state, std::format("Simulazione in pausa: {}", *step_error), 6.0);
+                setTransientStatus(
+                    app_state,
+                    std::format("Simulazione in pausa: {}", step_result.error().message),
+                    6.0);
             }
         }
 
         const FlightState modeling_preview_state = buildModelingPreviewState(vehicle);
-        const FlightState replay_or_live_state = currentRenderState(simulation_runtime);
-        const double render_time_s = currentRenderTime(simulation_runtime);
+        const FlightState replay_or_live_state = rocket::currentRenderState(simulation_runtime);
+        const double render_time_s = rocket::currentRenderTime(simulation_runtime);
         const FlightState& view_state =
             app_state.workspace == Workspace::Modeling ? modeling_preview_state : replay_or_live_state;
 

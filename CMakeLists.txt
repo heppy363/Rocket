@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+include(CTest)
+
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
 set(BUILD_RAYLIB_CPP_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -23,6 +25,7 @@ add_library(rocket_core STATIC
     src/ProjectIO.cpp
     src/RungeKutta4.cpp
     src/SimulationCore.cpp
+    src/SimulationEngine.cpp
     src/Validation.cpp
 )
 
@@ -47,4 +50,17 @@ target_link_libraries(rocket_sim
 
 if (WIN32)
     target_link_libraries(rocket_core PUBLIC Comdlg32)
+endif()
+
+if (BUILD_TESTING)
+    add_executable(rocket_core_tests
+        tests/rocket_core_tests.cpp
+    )
+
+    target_link_libraries(rocket_core_tests
+        PRIVATE
+            rocket_core
+    )
+
+    add_test(NAME rocket_core_tests COMMAND rocket_core_tests)
 endif()

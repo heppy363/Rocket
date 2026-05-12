@@ -904,7 +904,7 @@ void drawTrajectoryOverview(const ::Rectangle& bounds, const SimulationRuntime& 
         draw_marker(runtime.impact_point_m, "Impact", Color {239, 68, 68, 255});
     }
 
-    const rocket::FlightState render_state = currentRenderState(runtime);
+    const rocket::FlightState render_state = rocket::currentRenderState(runtime);
     const ::Vector2 current_point = profile_point(render_state.position_m);
     const bool keyframe_active = runtime.keyframe_preview_active;
     DrawCircleV(current_point, 6.0f, keyframe_active ? Color {244, 114, 182, 255} : runtime.replay_active ? Color {251, 191, 36, 255} : Color {125, 211, 252, 255});
