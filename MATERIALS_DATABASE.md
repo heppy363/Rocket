@@ -1,30 +1,54 @@
-# Materials & Components DB
+# Materials & Components Database
 
-## Materiali Strutturali
+Ultimo aggiornamento: `2026-05-12`
 
-| Materiale | Densita (kg/m3) | E (GPa) | Yield (MPa) | Tmax (C) | Uso tipico |
-| :--- | ---: | ---: | ---: | ---: | :--- |
-| **PLA-CF** | 1240 | 11.0 | 68 | 55 | Ogive prototipali, pinne stampate |
-| **Alluminio 6061** | 2700 | 68.0 | 276 | 150 | Struttura principale, tail section |
-| **PVC** | 1400 | 3.0 | 52 | 60 | Supporti interni e payload economico |
-| **Fiberglass** | 1850 | 24.0 | 210 | 120 | Fusoliere composite general purpose |
-| **Carbon Fiber** | 1600 | 70.0 | 600 | 135 | Body tube e pinne high-performance |
-| **Betulla Aircraft** | 680 | 10.5 | 95 | 90 | Pinne leggere e componenti semplici |
-| **Phenolic Tube** | 1420 | 16.0 | 140 | 180 | Tubi e avionics bay resistenti al calore |
+This table reflects the material definitions currently hard-coded in `src/DesignLibrary.cpp`.
 
-## Note di Modellazione
+## Structural Materials
 
-- Il simulatore usa ora queste proprieta per stimare massa strutturale, modulo equivalente e `q` dinamica consigliata.
-- Le proprieta materiali influenzano anche `Cd` base, `CNalpha`, damping rotazionale e distribuzione delle inerzie secche.
-- La `payload_mass_kg` resta il contenuto utile; il materiale payload influisce soprattutto sul bay/canister strutturale.
-- La `q` consigliata e una stima ingegneristica preliminare, utile per confronto tra layout, non sostituisce analisi FEM o flutter dedicate.
+| Materiale | Densita kg/m3 | E GPa | Yield MPa | Tmax C | Costo Relativo | Uso Tipico |
+| :--- | ---: | ---: | ---: | ---: | ---: | :--- |
+| `PLA-CF` | 1240 | 11.0 | 68 | 55 | 1.2 | Ogive prototipali, pinne stampate |
+| `Alluminio 6061` | 2700 | 68.0 | 276 | 150 | 2.4 | Struttura principale, tail section |
+| `PVC` | 1400 | 3.0 | 52 | 60 | 0.9 | Supporti interni, payload economico |
+| `Fiberglass` | 1850 | 24.0 | 210 | 120 | 1.8 | Fusoliere composite general purpose |
+| `Carbon Fiber` | 1600 | 70.0 | 600 | 135 | 3.6 | Body tube e pinne high-performance |
+| `Betulla Aircraft` | 680 | 10.5 | 95 | 90 | 1.0 | Pinne leggere e componenti semplici |
+| `Phenolic Tube` | 1420 | 16.0 | 140 | 180 | 1.7 | Tubi e avionics bay resistenti al calore |
 
-## Effetti Dinamici Attuali
+## How Materials Affect The Current Simulation
 
-- Materiali piu lisci e rigidi come `Carbon Fiber` e `Fiberglass` riducono il drag base e mantengono meglio l'efficacia delle pinne.
-- Materiali piu cedevoli o grezzi come `PVC`, `PLA-CF` e `Betulla Aircraft` aumentano leggermente il drag e possono ridurre l'efficacia aero laterale.
-- Il simulatore calcola ora una distribuzione d'inerzia secca per componenti (`nose`, `payload bay`, `body`, `transition`, `fins`) invece di usare solo una stima cilindrica globale.
+Materials are not cosmetic only. They currently influence:
 
-## Componenti Predefiniti
-- **Paracadute:** Coefficiente di drag $C_d \approx 1.5$ - $1.75$.
-- **Shock Cord:** Modellata come molla elastica (Hooke's Law).
+- structural mass estimate
+- dry mass estimate
+- equivalent density and equivalent modulus
+- recommended maximum dynamic pressure
+- base drag bias
+- normal-force slope estimate
+- rotational damping estimate
+- principal inertia estimate
+
+## Structural Outputs Already Used By The App
+
+The app computes:
+
+- per-component structural mass breakdown
+- equivalent material assessment
+- component dynamic pressure limit
+- global recommended dynamic pressure limit
+- dynamic pressure safety factor
+
+## Important Modeling Notes
+
+- `payload_mass_kg` represents useful payload mass, not only shell mass
+- payload material mostly affects the payload bay shell estimate
+- recommended `q` values are engineering heuristics for comparison
+- these limits are useful for design iteration, not substitutes for FEM or flutter validation
+
+## Recovery Defaults In Code
+
+- parachute drag coefficient: `1.55`
+- default parachute area: `0.85 m2`
+- default deployment altitude: `250 m`
+- default deployment delay: `1.2 s`

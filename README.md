@@ -1,52 +1,92 @@
-# Rocket Simulator
+# Rocket Simulator / The Rocket Lab
 
-Desktop C++20 prototype for procedural rocket modeling and ballistic flight simulation.
+Desktop prototype in C++20 for procedural rocket modeling, 3D inspection, and flight simulation.
 
-The project combines:
+## Current Project State
 
-- a raylib-based 3D desktop workspace focused on modeling and flight analysis
-- procedural rocket modeling and simulation controls wired to the existing C++ core
-- editable component presets for nose, body, transition, fins, payload, and motor cluster
-- per-component editable polygonal meshes with vertex/index buffers and optional wireframe overlay
-- direct mesh topology editing with `Vertex / Edge / Face` selection, face `extrude`, face `bevel`, and local edge `loop cut`
-- a physics core with variable mass, drag, wind-relative velocity, stability markers, and RK4 integration
-- material-aware structural estimates that now feed dry mass, inertia, damping, and recommended dynamic-pressure limits
-- a dual workspace UI for `Modelazione` and `Simulazione`
-- a dedicated `F3` wind-tunnel window focused on airflow, pressure, and aerodynamic response of individual rocket components
-- a Fluent-inspired visual language with clearer card grouping, larger whitespace, and cleaner primary-vs-secondary actions
+The current primary application is the `raylib` desktop workspace built from `src/RocketApp.cpp`.
 
-## Current Status
+Today the project already includes:
 
-This repository is an active prototype focused on:
+- a dual workspace desktop app: `Modelazione` and `Simulazione`
+- procedural rocket geometry with presets for complete vehicles
+- editable components: `Nose Cone`, `Body Tube`, `Transition`, `Fin Set`, `Motor Mount`, `Payload`
+- persistent per-component polygonal meshes with vertex/index buffers
+- direct mesh editing with `Vertex`, `Edge`, and `Face` selection
+- first topology tools: `Extrude Face`, `Bevel Face`, `Loop Cut Edge`
+- 6-DOF style runtime state with variable mass, attitude, angular velocity, and RK4 integration
+- clustered motors with asymmetric failure support and thrust moment generation
+- atmosphere, wind-relative velocity, Mach, dynamic pressure, and recovery drag
+- material-aware dry mass, inertia, damping, and recommended structural `q` limits
+- in-app CFD-inspired flow diagnostics plus a dedicated external `F3` wind-tunnel window on Windows
+- mission replay and keyframe review for `Launch`, `Burnout`, `Apogee`, and `Impact`
 
-- consolidating the 3D workspace as the only primary UI
-- modeling workflow cleanup
-- procedural component library expansion
-- ballistics and aerodynamic realism
-- simulation and UI iteration
-- consolidation of the wind-analysis workflow around a single focused `F3` tool
+## What Is In Build
 
-## Features
+Built by `CMake` today:
 
-- 3D desktop shell in raylib with modeling and simulation workspaces
-- Prefab component presets with physical impact on mass and aero coefficients
-- Extended construction-material library with density, stiffness, yield, service temperature, and structural guidance
-- Multi-motor cluster layout with asymmetric failure support
-- Basic atmospheric and aerodynamic modeling
-- Recovery system and descent logic
-- Real-time desktop viewport and simulation panels
-- External wind-tunnel analysis window with single-view aerodynamic diagnostics
-- Keyboard-driven mission keyframe review with focused in-app analysis window
-- In-workspace wind-tunnel component focus for local aerodynamic inspection
-- Modeling tool shortcuts with contextual hints for viewport-driven editing
-- Mesh inspector controls for topology mode switching and direct polygon editing inside the modeling workspace
+- `rocket_core` static library
+- `rocket_sim` executable
+- dependencies vendored in `external/raylib` and `external/raylib-cpp`
 
-## Tech Stack
+Not part of the current build:
 
-- C++20
-- CMake
-- [raylib](https://www.raylib.com/)
-- [raylib-cpp](https://github.com/RobLoach/raylib-cpp)
+- `src/RocketSlintApp.cpp`
+- `ui/rocket_lab.slint`
+
+Those files remain in the repository as UI prototype/reference material, but the active executable path is the `raylib` application.
+
+## Main Features
+
+### Modeling
+
+- project presets: `Research Starter`, `Sport Trainer`, `High Altitude`, `Minimum Diameter`, `Heavy Lift`
+- nose profiles: `Conical`, `Tangent Ogive`, `Parabolic`, `LD-Haack`
+- fin profiles: `Trapezoidal`, `Elliptical`, `Airfoil`
+- transition profiles: `Conical`, `Curved`
+- live rebuild of geometry, mass, inertia, drag, and stability markers
+- component picking directly in viewport
+- local component grid, snap, wireframe, metrics overlay, and reference board
+- draggable floating windows for toolbar, outliner, library, properties, status, and reference
+
+### Simulation
+
+- launch/replay/reset controls
+- fixed, follow, and free simulation camera
+- trajectory history and event markers
+- clustered motors with failure toggles
+- configurable scenario inputs for launch elevation, wind, gust, direction, and recovery
+- live telemetry for altitude, velocity, Mach, AoA, dynamic pressure, CG/CP, and static margin
+
+### Wind Tunnel / Aero Diagnostics
+
+- integrated CFD-inspired view in the simulation workspace
+- external `F3` monitor window on Windows only
+- flow regime readout, pressure envelope, streamline rendering, component load cards
+- synthetic shockwave and aeroelastic indicators
+- solver/render particle counters from the real-time CFD module
+
+## Controls
+
+### Global
+
+- `F1`: workspace `Modelazione`
+- `F2`: workspace `Simulazione`
+- `F3`: toggle external wind-tunnel monitor
+
+### Modeling
+
+- `TAB`: enable intentional CAD-like orbit camera
+- `1` to `6`: `Select`, `Move`, `Rotate`, `Scale`, `Add Part`, `Measure`
+- mouse wheel: zoom
+- `MMB`: orbit when CAD camera is active
+- `Shift + MMB`: pan when CAD camera is active
+
+### Simulation
+
+- `Space`: play/pause
+- `R`: reset mission
+- `K`: cycle mission keyframes
 
 ## Build
 
@@ -57,45 +97,39 @@ cmake -S . -B build
 cmake --build build --config Debug
 ```
 
-Executable output:
+Output executable:
 
 ```text
 build/Debug/rocket_sim.exe
 ```
 
-## Project Layout
+## Repository Layout
 
 ```text
-include/rocket/   Public headers for the simulation core and app entrypoint
-src/              Application and physics sources
-external/         Vendored rendering dependencies
-build/            Local build output (ignored)
+include/rocket/   Public headers for physics, vehicle, mesh, and app entrypoint
+src/              Application, simulation core, mesh generation, monitor window
+src/app/          Internal UI/state/interaction modules used by the raylib frontend
+external/         Vendored dependencies
+ui/               Slint prototype assets not used by the active build
 ```
 
-## Main Documents
+## Documentation Map
 
-- `BALLISTICS_PHYSICS_CORE.md`
-- `GUI_UX_SPECIFICATION.md`
-- `PROGRESS_DB.md`
-- `TODO_BACKLOG.md`
-- `THEORETICAL_PHYSICS.md`
+- `PROGRESS_DB.md`: current implementation status and decisions
+- `MODELING_GUIDE.md`: practical guide for the modeling workspace
+- `GUI_UX_SPECIFICATION.md`: current UX direction and implemented behaviors
+- `BALLISTICS_PHYSICS_CORE.md`: implemented physics model and next physics gaps
+- `MATERIALS_DATABASE.md`: materials used by the simulation and structural estimates
+- `TODO_BACKLOG.md`: prioritized technical backlog
+- `sttuttra.md`: codebase structure map
 
-## Notes
+## Current Limitations
 
-- The repository currently vendors external dependencies in `external/`.
-- The current primary application path is the 3D raylib workspace in `src/RocketApp.cpp`.
-- Legacy Slint files may remain in the tree for reference, but they are no longer part of the build.
-- Build output and generated IDE files are excluded via `.gitignore`.
-- The UI and simulation are still under active development and not yet production-stable.
-
-## Roadmap
-
-- Cleaner UI architecture
-- Richer component library
-- Stronger aerodynamic and ballistic validation
-- Better telemetry and simulation tooling
-- Stronger coupling between material selection and flight dynamics
-- Live weather integration
+- the external monitor window is Windows-specific
+- the weather providers are prepared in the model but not yet connected to live HTTP fetch
+- mesh topology edits are runtime-only and not yet serialized
+- the CFD layer is diagnostic and heuristic, not a full volumetric solver
+- the Slint frontend in the repository is not the active UI path
 
 ## Contributing
 

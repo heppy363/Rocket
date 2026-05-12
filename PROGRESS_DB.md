@@ -1,92 +1,130 @@
 # Context & Progress Database
-*Ultimo Aggiornamento: 2026-05-11*
 
-## Stato Moduli
-- **Core Fisica:** [In Corso] Integratore RK4 esteso a stato 6-DOF base con posizione, velocita, quaternione di assetto, velocita angolare e massa variabile.
-- **Core Balistico:** [In Corso] Atmosfera troposferica con pressione/temperatura/umidita, vento su quota, velocita relativa, Mach e dinamica salita/discesa piu fedele.
-- **Recovery & Descent:** [In Corso] Aggiunta distinzione tra discesa balistica e recovery descent con paracadute, deploy per quota/ritardo e telemetria dedicata.
-- **Cluster Motori:** [In Corso] Supporto iniziale a thrust aggregato, mass flow e momento asimmetrico in caso di failure, con thrust ruotato dal body frame al world frame.
-- **Dinamica Rotazionale:** [In Corso] Aggiunti momento aerodinamico restaurativo, smorzamento rotazionale e stima dell'angolo di attacco; servono ancora raffinamenti sul modello aero.
-- **Stabilita Statica:** [In Corso] Introdotti `X_cg`, `X_cp` e margine statico da geometria del veicolo con base Barrowman semplificata.
-- **Frontend 3D Primario:** [Corretto] La shell primaria dell'app e tornata al workspace Raylib in `RocketApp.cpp`, eliminando la dipendenza di build da Slint.
-- **Rendering 3D:** [In Corso] Raylib e di nuovo il cuore operativo dell'app, con modeling e simulation dentro la stessa esperienza desktop.
-- **Modellazione 3D:** [In Corso] Supporto a ogive matematiche `Conical`, `Tangent Ogive`, `Parabolic`, `LD-Haack` e pinne `Trapezoidal` / `Elliptical` / `Airfoil` con rebuild live della mesh.
-- **Modellazione Componenti:** [In Corso] Introdotti preset di veicolo, materiali precaricati, `Transition` mesh-based e primi `control vertices` locali per naso, corpo, transizione e pinne.
-- **Modeling Interaction:** [In Corso] Aggiunti handle 3D selezionabili nella viewport con drag del mouse per scolpire i control points dei componenti principali.
-- **Modeling UI:** [In Corso] Workspace rivisto con pannelli piu leggibili, `Inspector` piu chiaro, griglia locale del componente selezionato con passo modificabile e snap metrico.
-- **Modeling Tool Guidance:** [Corretto] Introdotti shortcut `1-6` per `Select/Move/Rotate/Scale/Add/Measure` con hint contestuali del tool attivo, handle in focus e feedback diretto nel toolbar/header/status bar.
-- **Modeling CAD Camera:** [Corretto] La prospettiva di modellazione usa ora una navigazione piu simile a un CAD: `TAB` abilita una camera intenzionale con `MMB` per orbita, `Shift+MMB` per pan, wheel per zoom e nessun movimento accidentale sopra i pannelli UI.
-- **Modeling Ground Alignment:** [Corretto] La preview del razzo in `Modelazione` viene ora sollevata in base al punto piu basso reale del veicolo, includendo la zona motore/nozzle, cosi da restare sempre sopra il piano di lavoro.
-- **Viewport Direct Selection:** [Corretto] I componenti principali del razzo possono ora essere selezionati direttamente in viewport tramite click sul modello, senza dipendere dall'outliner per il workflow base.
-- **Modeling Edit Cage:** [In Corso] Il componente selezionato mostra ora una gabbia di editing piu densa sopra la mesh, con punti distribuiti sulla forma invece dei soli pochi handle isolati.
-- **Mesh Topology Core:** [Corretto] `MeshGenerator` usa ora una rappresentazione persistente per-componente basata su `vertex/index buffers`, accessibile dal runtime per contare vertici, triangoli e aggiornare la mesh senza rigenerarla completamente ad ogni drag.
-- **Polygonal Vertex Editing:** [In Corso] Il workspace `Modelazione` puo ora inizializzare una lista reale di vertici editabili dal componente selezionato, trascinarli in viewport e visualizzare il wireframe della rete triangolare.
-- **Topology Selection & Mesh Ops:** [Corretto] La viewport supporta ora modalita `Vertex / Edge / Face`, con cache topologiche per-componente, highlight diretto di edge/facce e primi operatori `Extrude Face`, `Bevel Face` e `Loop Cut Edge`.
-- **Modeling Handle Precision:** [Corretto] I marker mesh di `vertex`, `edge` e `face` sono stati portati da sfere 3D grosse a overlay 2D piu piccoli e precisi, piu adatti a un editor poligonale.
-- **UI Text Containment:** [Corretto] Hint, info card, stepper, chip e status line del workspace sono ora renderizzati con wrapping/clipping controllato, evitando testo fuori bordo e pannelli disordinati.
-- **Viewport Handle Cleanup:** [Corretto] Anche gli handle parametrici non-mesh non vengono piu resi come grandi sfere 3D: usano marker overlay compatti, mentre CG/CP sono stati ridotti per non sporcare la lettura del modello.
-- **UI Copy & Visual Hierarchy:** [In Corso] Prima passata di modernizzazione completata: top bar piu descrittiva, telemetria a card, header modeling a chip, pannelli rinominati in modo coerente e microcopy piu chiara tra `Modelazione` e `Simulazione`.
-- **Fluent UI Pass:** [Corretto] Gerarchia visiva, whitespace e raggruppamento logico sono stati portati dentro la nuova shell Slint senza cambiare la logica del simulatore.
-- **Guided UX States:** [In Corso] Introdotti hint contestuali nell'inspector, messaggi di stato nella control room, stati vuoti piu espliciti per traiettoria/timeline e feedback dedicato nella `Wind Tunnel` quando il flusso e ancora nullo.
-- **Mission Keyframes Review:** [In Corso] Premendo `K` nel workspace `Simulazione` si scorrono i keyframe principali della missione (`Launch`, `Burnout`, `Apogee`, `Impact`) con freeze dell'istante selezionato e finestra dedicata di analisi puntuale delle condizioni del razzo.
-- **App Refactor:** [In Corso] Il vecchio `main.cpp` monolitico e stato spezzato in un entrypoint minimo, un orchestratore `RocketApp.cpp` e moduli interni separati per stato, interazione e UI, riducendo il rischio di manutenzione futura.
-- **Modeling Mesh Detail:** [Corretto] `Payload` e `MotorMount` non sono piu solo placeholder logici: la viewport ora genera una `payload section` dedicata e una rappresentazione mesh del cluster motori/nozzle coerente con il layout fisico.
-- **Component Library:** [In Corso] Ogni categoria principale del workspace `Modelazione` espone ora almeno 5 prefab 3D adattabili, con impatto automatico su massa, inerzie e coefficienti aerodinamici di base.
-- **UI Architecture:** [In Corso] Interfaccia ripulita con densita informativa ridotta, pannelli compatti e pattern piu scalabile basato su shell superiore, navigator laterale, viewport centrale e inspector contestuale.
-- **Wind Tunnel Workspace:** [In Corso] Aggiunta una sezione dedicata in `Simulazione` con pannello `Wind Tunnel` per leggere regime di flusso, velocita relativa, AoA, pressione dinamica e deformazione visuale delle streamline attorno al razzo.
-- **F3 Wind Tunnel Window:** [In Corso] `F3` e stato riallineato a una sola finestra esterna dedicata alla simulazione del vento, con profilo del corpo, streamline, pressione dinamica e lettura sintetica del comportamento aerodinamico dei singoli componenti (`Nose Cone`, `Body Tube`, `Transition`, `Fin Set`, `Payload`, `Motor Mount`).
-- **Wind Tunnel Component Focus:** [In Corso] Il pannello `Wind Tunnel` permette ora di selezionare il componente attivo (`nose`, `body`, `transition`, `fins`, `payload`, `motor mount`) e leggere carico stimato, area efficace e sensibilita locale all'angolo di attacco.
-- **CFD Diagnostic Upgrade:** [Corretto] La camera del vento ora usa anche densita aria, pressione statica, pressione totale e velocita del suono calcolate dal modello atmosferico reale del simulatore, riducendo la dipendenza da euristiche isolate.
-- **Flow Field Readability:** [Corretto] Streamline, regione di stagnazione, cue transonici e heatmap quota/velocita reagiscono ora in modo piu coerente a `Mach`, `q`, densita e condizioni atmosferiche locali.
-- **Aero Telemetry Depth:** [Corretto] Telemetria e focus locale espongono ora anche `rho`, `P`, `P0` e una stima di `Re`, avvicinando l'analisi a un workflow piu professionale di pre-CFD.
-- **Continuous Airflow Field:** [Corretto] La camera del vento principale e la finestra `F3` mostrano ora un campo di particelle continuo advettato attorno al razzo, con velocita apparente e deviazione del flusso legate a `Mach`, `q`, AoA e compressibilita.
-- **Real-Time CFD Core:** [In Corso] Introdotto un modulo CFD dedicato `CfdModule` con solver particellare persistente a densita rilassata, particle budget dinamico e stato del flusso riusabile dal workspace di simulazione.
-- **CFD Force Injection:** [Corretto] Il 6-DOF riceve ora anche un contributo CFD aggiuntivo su forza e momento, con termini extra di drag/lift transonico e risposta aeroelastica stimata.
-- **Shock & Aeroelastic Metrics:** [Corretto] Snapshot e camera del vento espongono ora `shockwave_intensity`, `aeroelastic_response` e conteggio particelle solver/render per leggere meglio il comportamento del flusso reale.
-- **CFD Panel Coherence:** [Corretto] Il rendering del flusso nella `Camera del Vento` resta ora confinato dentro il riquadro CFD e usa un comportamento piu stabile in `Recovery Flow`, evitando streak incoerenti fuori pannello.
-- **F3 Dense Airflow View:** [Corretto] La finestra esterna `F3` renderizza ora un campo aria ad alta densita con almeno 1000 streak lines nel pannello profilo, piu adatto a leggere deviazione del flusso, impatto sul razzo e zone di deformazione.
-- **F3 Surface Heatmap:** [Corretto] La finestra `F3` mostra ora anche una heatmap locale di pressione direttamente sulla superficie del profilo del razzo, con legenda dedicata e lettura del picco superficiale in telemetria.
-- **Simulation Coherence:** [In Corso] Il workspace `Simulazione` sta convergendo verso un flusso piu leggibile: overview della traiettoria nel workspace principale e analisi di vento/pressione isolata in `F3`, evitando dashboard esterne dispersive.
-- **Modeling Reference Workflow:** [In Corso] Il workspace `Modelazione` dispone ora di finestre trascinabili, viste `Perspective/Front/Side/Top` e blueprint board di riferimento nel viewport per guidare la modellazione 3D dei pezzi.
-- **Secure Refactor:** [In Corso] Introdotta validazione centralizzata `secure` per geometria e parametri motore, riducendo clamp sparsi e rendendo il modeling piu robusto contro input invalidi.
-- **Propulsione Editor:** [In Corso] Il cluster motori e ora configurabile per count, thrust, burn time, propellant mass, raggio cluster e cant angle con impatto diretto sulla balistica.
-- **UX Architettura:** [Definita] GUI riallineata a due workspace principali `Modelazione` e `Simulazione`, con `Modelazione` progettata in stile Blender.
-- **Workspace GUI:** [In Corso] La shell principale vive nel workspace 3D Raylib con due ambienti chiari (`Modelazione`, `Simulazione`); la parte core resta C++ e non e stata modificata nelle funzioni.
-- **Stabilita Runtime:** [Corretto] Crash della finestra risolto riallineando il ciclo di vita di `MeshGenerator` al contesto grafico Raylib.
-- **Materiali:** [In Corso] Libreria estesa a PLA-CF, Alluminio 6061, PVC, Fiberglass, Carbon Fiber, Betulla Aircraft e Phenolic Tube con densita, modulo elastico, yield, Tmax e costo relativo.
-- **Materiali nella Dinamica:** [Corretto] I materiali influenzano ora non solo massa e monitor strutturale, ma anche `Cd` base, `CNalpha`, damping rotazionale, inerzie secche per-component e limiti consigliati di `q`.
-- **Meteo API:** [Pianificato] Endpoint previsto: OpenWeatherMap via libcurl.
-- **Meteo API:** [In Corso] Simulazione pronta per coordinate di lancio e provider weather (`Open-Meteo` / `OpenWeatherMap`) con URL di query generabile dalla GUI.
+Ultimo aggiornamento: `2026-05-12`
 
-## Variabili Globali Progetto
-- **Gravita:** $9.80665$ m/s^2
-- **Frequenza Simulazione:** $1000$ Hz
-- **Unita di Misura:** SI (Metrico)
+## Executive Summary
 
-## Note del Decisore
-- Il simulatore deve permettere l'inserimento di cluster di motori (es. `3xG64`) e calcolare la spinta asimmetrica se uno dei motori fallisce.
-- Il 6-DOF e stato esteso con una prima stabilita statica, ma per ottenere un comportamento realistico servono ancora raffinamento aero, atmosfera migliore e controlli di scenario.
-- L'eseguibile apre ora una finestra grafica desktop per visualizzare l'avanzamento della simulazione in tempo reale.
-- La modellazione 3D del razzo e passata da primitive immediate a mesh procedurali con selezione live del profilo ogiva e delle varianti pinna.
-- La pipeline mesh `Airfoil` e stata corretta lato compilazione e resa selezionabile dalla GUI con shortcut dedicata.
-- La creazione e distruzione delle mesh devono avvenire solo con finestra Raylib attiva; questo vincolo e ora rispettato nel bootstrap della GUI.
-- La specifica GUI ora separa chiaramente editing del veicolo e analisi di volo in due ambienti distinti.
-- Il workspace `Modelazione` ora consente selezione componenti, editing parametrico live e overlay CG/CP; il workspace `Simulazione` separa telemetria, scenario, eventi e timeline.
-- Il workspace `Modelazione` include ora una `Piece Library` con preset matematici, selezione materiali e deformazioni locali tipo control-vertex senza uscire dal modello procedurale.
-- La modellazione 3D non e piu limitata a stepper numerici: ogni pezzo espone ora una mesh triangolare persistente consultabile dal runtime, con supporto iniziale a vertex dragging e wireframe reale.
-- Il modeling mesh ha fatto un passo ulteriore verso Blender: oltre al vertex dragging, l'inspector puo ora lavorare in modalita `Vertex`, `Edge` e `Face` e applicare operazioni topologiche locali direttamente sulla mesh attiva.
-- Il workspace `Modelazione` espone ora preset aggiuntivi (`Sport Trainer`, `Minimum Diameter`) e manipolatori 3D in viewport per un workflow piu vicino a Blender.
-- La viewport di modellazione dispone ora di una griglia locale precisa sul pezzo selezionato, con `grid spacing` ed `extent` regolabili dall'interfaccia.
-- Il workspace `Simulazione` espone ora coordinate di lancio, quota sito, profilo meteo al suolo e telemetria avanzata per la balistica del volo.
-- La UI di simulazione e stata ripulita separando meglio sito di lancio, meteo superficiale, recovery, panoramica della traiettoria e analisi del vento.
-- La UI ha ricevuto una prima passata esclusivamente UX/UI senza toccare la logica: nomi pannello piu coerenti, telemetria piu leggibile, stati missione piu chiari e migliore gerarchia visiva dei workspace.
-- La build primaria e ora indipendente da Slint: `rocket_sim` viene compilato dal percorso 3D Raylib (`src/RocketApp.cpp`, `src/MeshGenerator.cpp`, `src/SimulationMonitor.cpp`).
-- La passata Fluent piu recente ha aumentato whitespace, riallineato top bar e pannelli laterali, unificato i toggle di viewport e reso piu netta la distinzione tra azioni primarie e secondarie.
-- La seconda passata UX ha aggiunto onboarding leggero direttamente dentro i pannelli, riducendo ambiguita su cosa fare dopo in modeling e simulation.
-- La build di riferimento dell'app e `build/Debug/rocket_sim.exe`; non richiede piu toolchain Rust per il frontend.
-- La simulazione dispone ora di una modalita di ispezione keyframe comandata da tastiera per analisi puntuale di tempo, quota, Mach, AoA, pressione dinamica, massa e stabilita.
-- La camera del vento del workspace principale espone ora un focus per-componente che evidenzia visivamente il tratto selezionato e ne riassume il comportamento aero locale.
-- La telemetria e il focus `Wind Tunnel` espongono ora anche `q` consigliata e `safety factor` strutturale, cosi la scelta del materiale entra direttamente nel workflow di analisi.
-- La camera del vento non e ancora un solver CFD volumetrico tipo ANSYS, ma la diagnostica visuale e ora agganciata a grandezze atmosferiche e aerodinamiche piu credibili del modello di volo.
-- L'avvio dell'app ora e piu pulito: `main.cpp` si limita a delegare a `rocket::runRocketLabApp()`, mentre il codice applicativo e distribuito in file dedicati sotto `src/app/`.
-- `F3` non deve piu essere interpretato come desktop multi-finestra della simulazione completa: il suo ruolo e quello di aprire una sola camera del vento specializzata.
+The project has now clearly consolidated around the `raylib` desktop application.
+
+Current reality:
+
+- the active executable is `rocket_sim`
+- the primary UI is the 3D workspace in `src/RocketApp.cpp`
+- procedural modeling, simulation, and aero diagnostics are all wired together
+- the Slint UI branch remains in the tree as reference/prototype, not as the active build
+
+## Module Status
+
+### Application Layer
+
+- `RocketApp.cpp`: implemented and active
+- `src/app/*.inl`: implemented and actively used by the main app
+- `SimulationMonitor.cpp`: implemented; external monitor available on Windows
+- `RocketSlintApp.cpp`: present but not compiled in current `CMake`
+- `ui/rocket_lab.slint`: reference/prototype only
+
+### Modeling
+
+- dual workspace shell: implemented
+- viewport component picking: implemented
+- parametric editing of major components: implemented
+- presets for full rockets: implemented
+- per-component materials: implemented
+- local grid and snap: implemented
+- wireframe overlay: implemented
+- direct mesh vertex dragging: implemented
+- mesh selection modes `Vertex / Edge / Face`: implemented
+- topology operators `Extrude Face / Bevel Face / Loop Cut Edge`: first implementation completed
+- true gizmo-style transform tools for topology editing: not yet implemented
+- serialization of topology edits: not yet implemented
+
+### Mesh System
+
+- persistent mesh storage per component: implemented
+- face and edge cache generation: implemented
+- GPU mesh refresh after edits: implemented
+- support for `Nose`, `Body`, `Transition`, `Fin`, `Payload`, `Motor Mount`: implemented
+- smooth influence/falloff deformation: not yet implemented
+- full loop-cut over continuous edge loops: not yet implemented
+
+### Flight Simulation
+
+- RK4 integrator: implemented
+- variable mass during burn: implemented
+- thrust force and thrust moment from clustered motors: implemented
+- motor failure toggles: implemented
+- drag with simple Mach response: implemented
+- aerodynamic normal force and restoring moment: implemented
+- damping term: implemented
+- recovery drag and parachute deployment logic: implemented
+- key mission events and replay: implemented
+- rail guidance / launch rod phase: not yet implemented
+- layered wind profile and dispersion map: not yet implemented
+
+### Atmosphere & Weather
+
+- launch site and surface weather model: implemented
+- atmosphere derived from site and altitude: implemented
+- wind-relative velocity: implemented
+- provider enum and query URL helper: implemented
+- live weather fetch: not yet implemented
+
+### Aero / CFD Diagnostics
+
+- in-workspace wind tunnel panel: implemented
+- external `F3` wind-tunnel monitor: implemented on Windows
+- component-oriented aero cards: implemented
+- synthetic shockwave and aeroelastic metrics: implemented
+- real-time particle field for CFD-style diagnostics: implemented
+- CFD force/moment augmentation into flight model: implemented
+- pressure heatmap directly on 3D mesh: not yet implemented
+- full CFD solver with convergence model: not yet implemented
+
+## Current User-Facing Capabilities
+
+### Ready To Use
+
+- build and launch desktop app
+- choose a preset rocket
+- reshape geometry and materials
+- inspect CG, CP, static margin, and mass effects live
+- configure clustered motors and failures
+- simulate launch, burnout, apogee, impact, and replay
+- inspect aerodynamic behavior through the simulation workspace and `F3`
+
+### Partially Ready
+
+- topology editing is usable, but still first-generation
+- CFD diagnostics are informative, but still heuristic
+- weather sources are modeled in code, but not yet connected to network providers
+
+### Not Yet Productized
+
+- project save/load
+- export pipeline
+- persistent undo/redo
+- live online weather
+- graph-heavy simulation history UI
+
+## Architectural Decisions Locked In
+
+- the primary app path is `raylib`, not Slint
+- `main.cpp` must remain a minimal bootstrap
+- the physics core stays reusable and separated from the UI shell
+- mesh generation and simulation remain coupled through `VehicleModel`, not duplicated per frontend
+- the external monitor is specialized for aerodynamic diagnostics, not a duplicate full app window
+
+## Immediate Risks / Technical Debt
+
+- the `src/app/*.inl` split is better than the old monolith, but still transitional
+- topology edits reset with full procedural rebuilds and are not serialized
+- some documentation previously described Slint as primary even though the build no longer does
+- the CFD naming can suggest higher fidelity than the current heuristic model actually provides
+
+## Next High-Value Moves
+
+- connect live weather providers
+- persist project state and topology edits
+- move `src/app/*.inl` into stronger `.hpp/.cpp` modules
+- deepen topology editing beyond the current first operator set
+- add historical simulation graphs and richer comparison tools

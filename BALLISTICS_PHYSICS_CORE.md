@@ -1,158 +1,140 @@
-# Ballistics & Trajectory Physics Engine
+# Ballistics & Trajectory Physics Core
 
-Il simulatore deve risolvere iterativamente le equazioni del moto usando integrazione numerica RK4, ma la precisione finale dipende soprattutto dalla qualita dei modelli fisici che alimentano le derivate di stato.
+Ultimo aggiornamento: `2026-05-12`
 
-## 1. Modello Atmosferico Dinamico
-Le condizioni del sito di lancio devono partire da dati meteo legati a coordinate geografiche:
+This document now distinguishes between what is already implemented and what is still planned.
 
-- pressione al suolo `P0`
-- temperatura al suolo `T0`
-- umidita relativa
-- vento medio
-- raffiche
-- quota del sito
+## Implemented Physics Model
 
-Da queste grandezze si costruisce il profilo atmosferico locale lungo la quota.
+### State
 
-### A. Temperatura e Pressione in Troposfera
-La temperatura varia con il lapse rate standard:
+The simulation state currently includes:
 
-`T(h) = T0 - L * h`
+- position
+- velocity
+- attitude quaternion
+- angular velocity
+- mass
 
-dove `L = 0.0065 K/m`
+Time integration is performed with RK4.
 
-La pressione viene aggiornata con la relazione barometrica:
+### Forces Already In The Runtime
 
-`P(h) = P0 * (1 - L*h/T0)^((g*M)/(R*L))`
+The solver currently sums:
 
-### B. Densita dell'Aria con Correzione di Umidita
-La densita non deve essere trattata come semplice esponenziale fissa se abbiamo dati meteo reali.
+- thrust
+- aerodynamic drag
+- aerodynamic normal force
+- recovery drag
+- gravity
+- CFD-inspired augmentation force
 
-`rho = Pd / (Rd * T) + Pv / (Rv * T)`
+### Moments Already In The Runtime
 
-dove:
+The solver currently uses:
 
-- `Pd` e la pressione parziale dell'aria secca
-- `Pv` e la pressione del vapore
-- `Rd` e `Rv` sono le costanti specifiche per aria secca e vapor d'acqua
+- thrust moment from clustered motors
+- aerodynamic restoring moment from `CP - CG`
+- rotational damping moment
+- CFD-inspired augmentation moment
 
-## 2. Equazione Vettoriale del Moto
-Per ogni step temporale:
+### Propulsion
 
-`a = (Fthrust + Fdrag + Flift + Fgravity + Frecovery) / m(t)`
+Clustered motors already support:
 
-La velocita da usare nei termini aerodinamici non e quella assoluta del razzo, ma quella relativa al vento:
+- multiple mounted motors
+- per-motor mount position
+- per-motor thrust direction
+- failed motor toggles
+- thrust moment asymmetry
+- propellant mass flow
 
-`Vrel = Vrocket - Vwind`
+### Atmosphere
 
-## 3. Drag Aerodinamico
-Il drag dipende da densita, velocita relativa, area di riferimento e numero di Mach:
+The `Environment` model already provides:
 
-`Fdrag = -0.5 * rho * |Vrel|^2 * Cd(M) * A * Vrel_hat`
+- site elevation
+- surface pressure, temperature, humidity
+- wind speed, gust, direction
+- altitude-based pressure
+- altitude-based temperature
+- altitude-based density
+- speed of sound
+- gravity with altitude dependence
+- wind-relative velocity field used by the flight model
 
-### A. Numero di Mach
-`M = |Vrel| / a_sound`
+### Aerodynamics
 
-con:
+The current aerodynamic layer already computes:
 
-`a_sound = sqrt(gamma * R * T(h))`
+- relative airspeed
+- Mach number
+- dynamic pressure
+- angle of attack
+- aerodynamic drag with a simple Mach-dependent drag rise
+- aerodynamic normal force using `CNalpha`
+- static margin from CG and CP
 
-### B. Nota Modellistica
-Un modello realistico non deve usare un solo `Cd` costante su tutto il volo. Serve almeno una variazione semplificata tra:
+### Recovery
 
-- subsonico
-- transonico
-- supersonico iniziale
+The current recovery model already supports:
 
-## 4. Forza Normale, Lift e Momento Ripristinante
-La componente normale aerodinamica e fondamentale sia per la traiettoria sia per la stabilita:
+- deployment delay
+- deployment altitude
+- descent drag from parachute area and parachute `Cd`
 
-`Flift = 0.5 * rho * |Vrel|^2 * A * CNalpha * alpha`
+## Diagnostics Already Exposed To The App
 
-dove:
+The application already exposes:
 
-- `alpha` e l'angolo di attacco tra asse del razzo e aria relativa
-- `CNalpha` deriva dal modello geometrico del razzo, ad esempio tramite Barrowman
+- time
+- altitude
+- airspeed
+- Mach
+- AoA
+- dynamic pressure
+- CG / CP
+- static margin
+- max altitude
+- wind speed
+- pressure and density derived from the environment
+- shockwave and aeroelastic synthetic indicators
 
-Il momento restaurativo dipende dalla distanza `CP - CG` e dalla forza aerodinamica trasformata nel frame del corpo.
+## Current Model Limits
 
-## 5. Massa Variabile
-Durante la combustione:
+The simulation is useful and coherent, but still approximate.
 
-- `m(t) = mdry + mpropellant(t)`
-- `dm/dt < 0`
+Not yet implemented:
 
-Se il motore e descritto solo con massa propellente e burn time, la variazione puo essere modellata come mass flow medio. Se sono disponibili spinta e impulso specifico, la forma piu fisica e:
+- launch rail guidance
+- staged propulsion
+- layered wind profile by altitude bands
+- true Barrowman-grade full-detail CP breakdown per component
+- controller/autopilot logic
+- dispersion maps
+- high-fidelity transonic/supersonic aero database
 
-`dm/dt = -T / (g0 * Isp)`
+## CFD Layer: What It Is Today
 
-## 6. Vento, Gust e Weather Cocking
-Il vento non deve solo traslare il punto di impatto: modifica `Vrel`, quindi drag, angolo di attacco e momento di imbardata/beccheggio.
+The `CfdModule` is currently a real-time diagnostic augmentation layer, not a full CFD solver.
 
-Profilo minimo richiesto:
+It currently provides:
 
-- vento medio al suolo
-- shear verticale semplice
-- contributo di raffica dipendente dal tempo
+- persistent particle field
+- component pressure buckets
+- heuristic force and moment augmentation
+- render particle samples
+- synthetic shockwave and aeroelastic response cues
 
-## 7. Gravita Locale
-Per simulazioni piu fedeli:
+It does not yet provide:
 
-- la gravita puo dipendere da latitudine
-- la gravita puo essere corretta con la quota del sito e con l'altitudine di volo
+- converged volumetric CFD
+- mesh pressure field export
+- Navier-Stokes-grade resolution
 
-## 8. Fase di Discesa
-La fisica non termina all'apogeo.
+## Near-Term Physics Priorities
 
-### A. Discesa Balistica
-Se nessun sistema di recovery e attivo, il corpo rientra con:
-
-- peso
-- drag aerodinamico del corpo
-- vento
-
-### B. Recovery Descent
-Se il paracadute o il recovery system viene aperto:
-
-`Frecovery = -0.5 * rho * |Vrel|^2 * Cd_recovery * A_recovery * Vrel_hat`
-
-La logica di deploy puo dipendere da:
-
-- quota
-- ritardo temporale
-- evento di missione
-
-## 9. Output Balistici Attesi
-La simulazione deve permettere di leggere almeno:
-
-- traiettoria di salita
-- apogeo
-- velocita massima
-- Mach massimo
-- pressione dinamica massima
-- deriva laterale
-- traiettoria di discesa
-- punto stimato di atterraggio
-
-## 9B. Output Aero Locali per Camera del Vento
-La modalita `F3` deve sintetizzare anche una lettura locale, non solo globale, del comportamento aerodinamico:
-
-- risposta della `Nose Cone` nella zona di ristagno
-- contributo del `Body Tube` a skin drag e sviluppo dello strato limite
-- influenza della `Transition` sul recupero di pressione in coda
-- sensibilita del `Fin Set` a `AoA`, forza normale e damping
-- effetto di `Payload` e volume anteriore sull'equilibrio aero
-- impronta di `Motor Mount` e regione nozzle su wake e base drag
-
-## 10. Algoritmo di Integrazione
-Pseudo-codice:
-
-```cpp
-State computeNextState(State current, double dt) {
-    auto k1 = derivatives(current);
-    auto k2 = derivatives(current + k1 * (dt / 2));
-    auto k3 = derivatives(current + k2 * (dt / 2));
-    auto k4 = derivatives(current + k3 * dt);
-    return current + (k1 + k2 * 2 + k3 * 2 + k4) * (dt / 6);
-}
-```
+1. connect live weather input to the existing environment model
+2. improve wind profiling and launch-phase realism
+3. deepen aerodynamic validation around transonic behavior
+4. preserve coherence between flight model and diagnostic CFD layer
