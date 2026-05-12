@@ -4,6 +4,7 @@
 
 #include "rocket/DesignLibrary.hpp"
 #include "rocket/PhysicalConstants.hpp"
+#include "rocket/SimulationCaches.hpp"
 
 namespace rocket {
 
@@ -32,7 +33,7 @@ SimulationSnapshot buildSimulationSnapshot(
     const double air_temperature_k = environment.airTemperatureK(altitude_m);
     const double speed_of_sound_mps = environment.speedOfSoundMps(altitude_m);
     const StructuralMaterialAssessment assessment =
-        estimateStructuralMaterialAssessment(vehicle.geometry);
+        cachedStructuralMaterialAssessment(vehicle.geometry);
     constexpr double rad_to_deg = 57.29577951308232;
 
     return SimulationSnapshot {
@@ -52,7 +53,7 @@ SimulationSnapshot buildSimulationSnapshot(
         .mach_number = force_result.mach_number,
         .relative_air_speed_mps = force_result.relative_air_velocity_world_mps.magnitude(),
         .wind_speed_mps = force_result.wind_velocity_world_mps.magnitude(),
-        .recommended_max_dynamic_pressure_pa = estimateRecommendedMaxDynamicPressurePa(vehicle.geometry),
+        .recommended_max_dynamic_pressure_pa = cachedRecommendedMaxDynamicPressurePa(vehicle.geometry),
         .dynamic_pressure_safety_factor =
             estimateDynamicPressureSafetyFactor(vehicle.geometry, force_result.dynamic_pressure_pa),
         .equivalent_structural_modulus_gpa = assessment.equivalent_modulus_gpa,

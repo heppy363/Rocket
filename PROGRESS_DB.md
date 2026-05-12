@@ -51,6 +51,7 @@ Current reality:
 ### Flight Simulation
 
 - RK4 integrator: implemented
+- software `L1/L2` cache layer for repeated core calculations: implemented
 - variable mass during burn: implemented
 - thrust force and thrust moment from clustered motors: implemented
 - motor failure toggles: implemented
@@ -66,6 +67,7 @@ Current reality:
 
 - launch site and surface weather model: implemented
 - atmosphere derived from site and altitude: implemented
+- atmosphere `L1/L2` cache for repeated altitude queries: implemented
 - wind-relative velocity: implemented
 - provider enum and query URL helper: implemented
 - live weather fetch service: implemented
@@ -128,12 +130,14 @@ Current reality:
 - the primary app path is `raylib`, not Slint
 - `main.cpp` must remain a minimal bootstrap
 - the physics core stays reusable and separated from the UI shell
+- performance optimizations should prefer deterministic software caches before more invasive approximation layers
 - mesh generation and simulation remain coupled through `VehicleModel`, not duplicated per frontend
 - the external monitor is specialized for aerodynamic diagnostics, not a duplicate full app window
 
 ## Immediate Risks / Technical Debt
 
 - the `src/app/*.inl` split is better than the old monolith, but still transitional
+- the new `L1/L2` cache layer is exact-keyed, so it avoids drift but does not yet exploit approximate reuse across nearby states
 - topology edits are serialized, but a full procedural rebuild can still replace local edits
 - some documentation previously described Slint as primary even though the build no longer does
 - the CFD naming can suggest higher fidelity than the current heuristic model actually provides

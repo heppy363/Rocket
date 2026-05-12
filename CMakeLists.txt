@@ -24,6 +24,7 @@ add_library(rocket_core STATIC
     src/NativeFileDialog.cpp
     src/ProjectIO.cpp
     src/RungeKutta4.cpp
+    src/SimulationCaches.cpp
     src/SimulationCore.cpp
     src/SimulationEngine.cpp
     src/Validation.cpp

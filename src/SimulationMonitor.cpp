@@ -11,6 +11,7 @@
 
 #include "rocket/DesignLibrary.hpp"
 #include "rocket/PhysicalConstants.hpp"
+#include "rocket/SimulationCaches.hpp"
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -988,7 +989,7 @@ private:
         ty += 22;
         drawLine(hdc, telemetry_box.left + 12, ty, L"Peak Surface   " + formatNumber(peak_surface_pressure_kpa, 1) + L" kPa", RGB(248, 250, 252));
         ty += 22;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"q Rec Struct  " + formatNumber(estimateRecommendedMaxDynamicPressurePa(state.geometry) / 1000.0, 1) + L" kPa", RGB(226, 232, 240));
+        drawLine(hdc, telemetry_box.left + 12, ty, L"q Rec Struct  " + formatNumber(cachedRecommendedMaxDynamicPressurePa(state.geometry) / 1000.0, 1) + L" kPa", RGB(226, 232, 240));
         ty += 22;
         drawLine(hdc, telemetry_box.left + 12, ty, L"Apogee        " + formatNumber(state.snapshot.max_altitude_m, 1) + L" m");
         ty += 22;

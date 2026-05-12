@@ -21,6 +21,7 @@ Ultimo aggiornamento: `2026-05-12`
 ## Simulation
 
 - [~] Rifinire replay e review keyframe.
+- [ ] Estendere il sistema di cache software `L1/L2` a piu sottosistemi hot-path con metriche di cache hit.
 - [ ] Aggiungere scrub manuale e confronto fra keyframe.
 - [ ] Introdurre grafici storici per quota, Mach, `q`, `rho`, `P`, `P0`, `Re`.
 - [ ] Migliorare il profilo vento con shear multilayer.

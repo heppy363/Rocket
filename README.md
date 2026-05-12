@@ -15,6 +15,7 @@ Today the project already includes:
 - direct mesh editing with `Vertex`, `Edge`, and `Face` selection
 - first topology tools: `Extrude Face`, `Bevel Face`, `Loop Cut Edge`
 - 6-DOF style runtime state with variable mass, attitude, angular velocity, and RK4 integration
+- software `L1/L2` caches in the core for repeated atmosphere and vehicle-derived calculations
 - clustered motors with asymmetric failure support and thrust moment generation
 - atmosphere, wind-relative velocity, Mach, dynamic pressure, and recovery drag
 - material-aware dry mass, inertia, damping, and recommended structural `q` limits
@@ -139,6 +140,7 @@ ui/               Slint prototype assets not used by the active build
 - weather fetch is manual from the scenario panel, not yet auto-refresh or background sync
 - the CFD layer is diagnostic and heuristic, not a full volumetric solver
 - the particle CFD neighborhood model is improved but still approximate, not a real Navier-Stokes solver
+- the `L1/L2` acceleration is a software cache layer in the simulation core, not direct control of hardware CPU caches
 - the Slint frontend in the repository is not the active UI path
 
 ## Contributing

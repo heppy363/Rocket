@@ -5,6 +5,7 @@
 
 #include "rocket/Environment.hpp"
 #include "rocket/RungeKutta4.hpp"
+#include "rocket/SimulationCaches.hpp"
 #include "rocket/SimulationEngine.hpp"
 #include "rocket/SimulationRuntime.hpp"
 #include "rocket/Validation.hpp"
@@ -91,6 +92,27 @@ bool testSimulationRuntimeStep() {
         "Simulation runtime should advance time and keep trajectory history");
 }
 
+bool testTwoLevelCachesPreserveResults() {
+    const rocket::VehicleModel vehicle = makeValidVehicle();
+    const rocket::Environment environment;
+
+    const double altitude_m = 125.0;
+    const double pressure_direct = environment.airPressurePa(altitude_m);
+    const double density_direct = environment.airDensityKgPerM3(altitude_m);
+    const auto structural_direct = rocket::estimateStructuralMaterialAssessment(vehicle.geometry);
+    const auto structural_cached = rocket::cachedStructuralMaterialAssessment(vehicle.geometry);
+
+    return check(
+               nearlyEqual(pressure_direct, environment.airPressurePa(altitude_m)) &&
+                   nearlyEqual(density_direct, environment.airDensityKgPerM3(altitude_m)),
+               "Environment L1/L2 software cache should preserve atmosphere results") &&
+           check(
+               nearlyEqual(structural_direct.equivalent_modulus_gpa, structural_cached.equivalent_modulus_gpa) &&
+                   nearlyEqual(structural_direct.equivalent_density_kg_per_m3, structural_cached.equivalent_density_kg_per_m3) &&
+                   nearlyEqual(structural_direct.recommended_max_dynamic_pressure_pa, structural_cached.recommended_max_dynamic_pressure_pa),
+               "Vehicle geometry L1/L2 software cache should preserve derived structural results");
+}
+
 }  // namespace
 
 int main() {
@@ -98,6 +120,7 @@ int main() {
     ok = testValidationRejectsZeroDt() && ok;
     ok = testTryIntegrateRk4AdvancesState() && ok;
     ok = testSimulationRuntimeStep() && ok;
+    ok = testTwoLevelCachesPreserveResults() && ok;
 
     if (!ok) {
         return EXIT_FAILURE;

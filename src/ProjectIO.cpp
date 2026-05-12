@@ -11,6 +11,7 @@
 #include <unordered_map>
 
 #include "rocket/DesignLibrary.hpp"
+#include "rocket/SimulationCaches.hpp"
 
 namespace rocket {
 
@@ -768,8 +769,8 @@ bool exportProjectReport(
             document.surface_weather.wind_direction_deg,
             document.surface_weather.wind_gust_mps);
 
-        const auto structure = estimateStructureMassBreakdown(document.vehicle.geometry);
-        const auto structural = estimateStructuralMaterialAssessment(document.vehicle.geometry);
+        const auto structure = cachedStructureMassBreakdown(document.vehicle.geometry);
+        const auto structural = cachedStructuralMaterialAssessment(document.vehicle.geometry);
         output << "## Vehicle Summary\n\n";
         output << std::format("Nose shape: {}\n", noseConeShapeLabel(document.vehicle.geometry.nose_cone_shape));
         output << std::format("Fin shape: {}\n", finShapeLabel(document.vehicle.geometry.fin_shape));

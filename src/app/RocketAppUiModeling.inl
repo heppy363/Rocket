@@ -977,8 +977,8 @@ void drawModelingStatusBar(
     const rocket::SimulationSnapshot& snapshot,
     const rocket::VehicleModel& vehicle) {
     drawPanel(bounds, "Riepilogo Progetto", Color {10, 16, 28, 235});
-    const auto breakdown = rocket::estimateStructureMassBreakdown(vehicle.geometry);
-    const auto structural = rocket::estimateStructuralMaterialAssessment(vehicle.geometry);
+    const auto breakdown = rocket::cachedStructureMassBreakdown(vehicle.geometry);
+    const auto structural = rocket::cachedStructuralMaterialAssessment(vehicle.geometry);
     drawKeyValueLine(Rectangle {bounds.x + 18.0f, bounds.y + 50.0f, 220.0f, 20.0f}, "Preset", std::string(rocket::rocketPresetLabel(app_state.active_preset)));
     drawKeyValueLine(Rectangle {bounds.x + 18.0f, bounds.y + 74.0f, 220.0f, 20.0f}, "Stabilita", std::format("{:.2f} cal", snapshot.static_margin_calibers));
     drawKeyValueLine(Rectangle {bounds.x + 268.0f, bounds.y + 50.0f, 220.0f, 20.0f}, "Massa", std::format("{:.2f} kg", snapshot.state.mass_kg));

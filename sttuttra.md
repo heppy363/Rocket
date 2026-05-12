@@ -41,6 +41,7 @@ Percorso applicativo attivo:
 - `include/rocket/CfdModule.hpp`: diagnostica CFD-style e augmentation aero.
 - `include/rocket/RungeKutta4.hpp`: integrazione numerica.
 - `include/rocket/SimulationCore.hpp`: helper core per stato iniziale, snapshot e monitor state.
+- `include/rocket/SimulationCaches.hpp`: cache software `L1/L2` per analisi geometriche e derivati ripetuti.
 - `include/rocket/SimulationRuntime.hpp`: struttura dati runtime della missione.
 - `include/rocket/SimulationEngine.hpp`: stepping, replay e sampling del runtime.
 - `include/rocket/Validation.hpp`: validazione esplicita con `std::expected`.
@@ -61,6 +62,7 @@ Percorso applicativo attivo:
 - `src/Forces.cpp`: drag, lift laterale, recovery, thrust e momenti.
 - `src/CfdModule.cpp`: diagnostica realtime del flusso.
 - `src/RungeKutta4.cpp`: stepping numerico.
+- `src/SimulationCaches.cpp`: implementazione delle cache software `L1/L2`.
 - `src/SimulationCore.cpp`: snapshot e adapter puri tra fisica e monitor.
 - `src/SimulationEngine.cpp`: runtime della missione estratto dalla UI.
 - `src/Validation.cpp`: validazione input e stato simulazione.

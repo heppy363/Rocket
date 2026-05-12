@@ -22,6 +22,7 @@
 #include "rocket/RocketApp.hpp"
 #include "rocket/RungeKutta4.hpp"
 #include "rocket/SecureValidation.hpp"
+#include "rocket/SimulationCaches.hpp"
 #include "rocket/SimulationCore.hpp"
 #include "rocket/SimulationEngine.hpp"
 #include "rocket/SimulationMonitor.hpp"
