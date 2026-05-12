@@ -24,6 +24,7 @@ Materials are not cosmetic only. They currently influence:
 - dry mass estimate
 - equivalent density and equivalent modulus
 - recommended maximum dynamic pressure
+- component damage thresholds for visual failure cues
 - base drag bias
 - normal-force slope estimate
 - rotational damping estimate

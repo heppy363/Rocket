@@ -62,6 +62,9 @@ public:
         const std::array<double, static_cast<std::size_t>(CfdComponentBand::Count)>& component_pressure_pa,
         double reference_pressure_pa,
         bool enabled) noexcept;
+    void setComponentFailureOverlay(
+        const std::array<float, static_cast<std::size_t>(CfdComponentBand::Count)>& component_failure_intensity,
+        bool enabled) noexcept;
 
     [[nodiscard]] const IndexedMeshData* componentMesh(ComponentType component) const noexcept;
     [[nodiscard]] const std::vector<MeshEdgeData>* componentEdges(ComponentType component) const noexcept;

@@ -77,6 +77,20 @@ Vector3 fromRaylibLocal(const ::Vector3& position) {
     return MatrixMultiply(rotation, translation);
 }
 
+void drawIndexedMeshWireOverlay(const IndexedMeshData& topology, const FlightState& state, Color color) {
+    for (std::size_t triangle = 0; triangle + 2 < topology.indices.size(); triangle += 3) {
+        const Vector3 a_body = topology.vertices[topology.indices[triangle]].position_body_m;
+        const Vector3 b_body = topology.vertices[topology.indices[triangle + 1]].position_body_m;
+        const Vector3 c_body = topology.vertices[topology.indices[triangle + 2]].position_body_m;
+        const Vector3 a_world = state.position_m + rotateVector(state.attitude_body_to_world, a_body);
+        const Vector3 b_world = state.position_m + rotateVector(state.attitude_body_to_world, b_body);
+        const Vector3 c_world = state.position_m + rotateVector(state.attitude_body_to_world, c_body);
+        DrawLine3D(toRaylibLocal(a_world), toRaylibLocal(b_world), color);
+        DrawLine3D(toRaylibLocal(b_world), toRaylibLocal(c_world), color);
+        DrawLine3D(toRaylibLocal(c_world), toRaylibLocal(a_world), color);
+    }
+}
+
 Color materialBaseColor(ComponentMaterial material) noexcept {
     switch (material) {
     case ComponentMaterial::PlaCf:
@@ -723,8 +737,10 @@ struct MeshGenerator::Impl {
     ::Material payload_material {};
     ::Material motor_material {};
     std::array<double, static_cast<std::size_t>(CfdComponentBand::Count)> pressure_overlay_pa {};
+    std::array<float, static_cast<std::size_t>(CfdComponentBand::Count)> failure_overlay_intensity {};
     double pressure_reference_pa {1.0};
     bool pressure_overlay_enabled {false};
+    bool failure_overlay_enabled {false};
     bool built {false};
 
     void unloadComponent(ComponentMeshGpu& component) {
@@ -819,18 +835,33 @@ struct MeshGenerator::Impl {
             return lerpColor(base, pressureHeatColor(normalized), 0.72f * normalized);
         };
 
+        const auto apply_failure_overlay = [&](ComponentMaterial material, CfdComponentBand band) {
+            const Color base = materialBaseColor(material);
+            const float failure = std::clamp(failure_overlay_intensity[static_cast<std::size_t>(band)], 0.0f, 1.0f);
+            const double ratio = pressure_overlay_pa[static_cast<std::size_t>(band)] / std::max(pressure_reference_pa, 1.0);
+            const float normalized = std::clamp(static_cast<float>(std::sqrt(std::max(ratio, 0.0))), 0.0f, 1.0f);
+            Color result = base;
+            if (failure > 0.0f) {
+                result = lerpColor(result, Color {239, 68, 68, 255}, failure);
+            }
+            if (pressure_overlay_enabled) {
+                result = lerpColor(result, pressureHeatColor(normalized), 0.72f * normalized);
+            }
+            return result;
+        };
+
         body_material.maps[MATERIAL_MAP_DIFFUSE].color =
-            component_color(geometry.body_material, CfdComponentBand::BodyTube);
+            apply_failure_overlay(geometry.body_material, CfdComponentBand::BodyTube);
         nose_material.maps[MATERIAL_MAP_DIFFUSE].color =
-            component_color(geometry.nose_material, CfdComponentBand::NoseCone);
+            apply_failure_overlay(geometry.nose_material, CfdComponentBand::NoseCone);
         transition_material.maps[MATERIAL_MAP_DIFFUSE].color =
-            component_color(geometry.transition_material, CfdComponentBand::Transition);
+            apply_failure_overlay(geometry.transition_material, CfdComponentBand::Transition);
         fin_material.maps[MATERIAL_MAP_DIFFUSE].color =
-            component_color(geometry.fin_material, CfdComponentBand::FinSet);
+            apply_failure_overlay(geometry.fin_material, CfdComponentBand::FinSet);
         payload_material.maps[MATERIAL_MAP_DIFFUSE].color =
-            component_color(geometry.payload_material, CfdComponentBand::Payload);
+            apply_failure_overlay(geometry.payload_material, CfdComponentBand::Payload);
         motor_material.maps[MATERIAL_MAP_DIFFUSE].color =
-            component_color(ComponentMaterial::Aluminum6061, CfdComponentBand::MotorMount);
+            apply_failure_overlay(ComponentMaterial::Aluminum6061, CfdComponentBand::MotorMount);
     }
 };
 
@@ -935,17 +966,35 @@ void MeshGenerator::draw(const FlightState& state) const {
 
     impl_->applyPressureOverlay();
     const ::Matrix transform = bodyToWorldTransform(state);
-    DrawMesh(impl_->body.gpu_mesh, impl_->body_material, transform);
-    DrawMesh(impl_->nose.gpu_mesh, impl_->nose_material, transform);
+    const auto draw_component = [&](const Impl::ComponentMeshGpu& component, const ::Material& material, CfdComponentBand band) {
+        if (component.gpu_mesh.vertexCount == 0) {
+            return;
+        }
+        DrawMesh(component.gpu_mesh, material, transform);
+        if (impl_->failure_overlay_enabled) {
+            const float intensity = std::clamp(impl_->failure_overlay_intensity[static_cast<std::size_t>(band)], 0.0f, 1.0f);
+            if (intensity > 0.001f) {
+                const Color wire_color = {
+                    255,
+                    static_cast<unsigned char>(120.0f + 120.0f * (1.0f - intensity)),
+                    static_cast<unsigned char>(120.0f + 120.0f * (1.0f - intensity)),
+                    static_cast<unsigned char>(140.0f + 115.0f * intensity)};
+                drawIndexedMeshWireOverlay(component.topology, state, wire_color);
+            }
+        }
+    };
+
+    draw_component(impl_->body, impl_->body_material, CfdComponentBand::BodyTube);
+    draw_component(impl_->nose, impl_->nose_material, CfdComponentBand::NoseCone);
     if (impl_->transition.gpu_mesh.vertexCount > 0) {
-        DrawMesh(impl_->transition.gpu_mesh, impl_->transition_material, transform);
+        draw_component(impl_->transition, impl_->transition_material, CfdComponentBand::Transition);
     }
-    DrawMesh(impl_->fin.gpu_mesh, impl_->fin_material, transform);
+    draw_component(impl_->fin, impl_->fin_material, CfdComponentBand::FinSet);
     if (impl_->payload.gpu_mesh.vertexCount > 0) {
-        DrawMesh(impl_->payload.gpu_mesh, impl_->payload_material, transform);
+        draw_component(impl_->payload, impl_->payload_material, CfdComponentBand::Payload);
     }
     if (impl_->motor.gpu_mesh.vertexCount > 0) {
-        DrawMesh(impl_->motor.gpu_mesh, impl_->motor_material, transform);
+        draw_component(impl_->motor, impl_->motor_material, CfdComponentBand::MotorMount);
     }
 }
 
@@ -958,6 +1007,13 @@ void MeshGenerator::setPressureOverlay(
     impl_->pressure_overlay_enabled = enabled;
 }
 
+void MeshGenerator::setComponentFailureOverlay(
+    const std::array<float, static_cast<std::size_t>(CfdComponentBand::Count)>& component_failure_intensity,
+    bool enabled) noexcept {
+    impl_->failure_overlay_intensity = component_failure_intensity;
+    impl_->failure_overlay_enabled = enabled;
+}
+
 void MeshGenerator::drawWireframe(const FlightState& state) const {
     if (!impl_->built) {
         return;
@@ -967,17 +1023,7 @@ void MeshGenerator::drawWireframe(const FlightState& state) const {
         if (component.topology.indices.empty()) {
             return;
         }
-        for (std::size_t triangle = 0; triangle + 2 < component.topology.indices.size(); triangle += 3) {
-            const Vector3 a_body = component.topology.vertices[component.topology.indices[triangle]].position_body_m;
-            const Vector3 b_body = component.topology.vertices[component.topology.indices[triangle + 1]].position_body_m;
-            const Vector3 c_body = component.topology.vertices[component.topology.indices[triangle + 2]].position_body_m;
-            const Vector3 a_world = state.position_m + rotateVector(state.attitude_body_to_world, a_body);
-            const Vector3 b_world = state.position_m + rotateVector(state.attitude_body_to_world, b_body);
-            const Vector3 c_world = state.position_m + rotateVector(state.attitude_body_to_world, c_body);
-            DrawLine3D(toRaylibLocal(a_world), toRaylibLocal(b_world), Color {241, 245, 249, 120});
-            DrawLine3D(toRaylibLocal(b_world), toRaylibLocal(c_world), Color {241, 245, 249, 120});
-            DrawLine3D(toRaylibLocal(c_world), toRaylibLocal(a_world), Color {241, 245, 249, 120});
-        }
+        drawIndexedMeshWireOverlay(component.topology, state, Color {241, 245, 249, 120});
     };
 
     draw_component(impl_->body);

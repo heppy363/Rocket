@@ -262,6 +262,23 @@ int rocket::runRocketLabApp() {
             std::max(active_snapshot.dynamic_pressure_pa, active_snapshot.recommended_max_dynamic_pressure_pa),
             app_state.show_cfd_pressure_overlay);
 
+        const auto compute_failure_intensity = [&](ComponentType component, CfdComponentBand band) {
+            const double limit_pa = estimateComponentDynamicPressureLimitPa(component, vehicle.geometry);
+            const double component_pa = cfd_frame.component_pressure_pa[static_cast<std::size_t>(band)];
+            const double ratio = component_pa / std::max(limit_pa, 1.0);
+            return static_cast<float>(std::clamp((ratio - 1.0) / 0.6, 0.0, 1.0));
+        };
+        mesh_generator.setComponentFailureOverlay(
+            std::array<float, static_cast<std::size_t>(CfdComponentBand::Count)>{
+                compute_failure_intensity(ComponentType::NoseCone, CfdComponentBand::NoseCone),
+                compute_failure_intensity(ComponentType::BodyTube, CfdComponentBand::BodyTube),
+                compute_failure_intensity(ComponentType::Transition, CfdComponentBand::Transition),
+                compute_failure_intensity(ComponentType::FinSet, CfdComponentBand::FinSet),
+                compute_failure_intensity(ComponentType::Payload, CfdComponentBand::Payload),
+                compute_failure_intensity(ComponentType::MotorMount, CfdComponentBand::MotorMount)
+            },
+            app_state.workspace == Workspace::Simulation);
+
         if (app_state.show_simulation_window) {
             simulation_monitor.publish(buildMonitorState(simulation_snapshot, simulation_runtime, vehicle, environment));
         }

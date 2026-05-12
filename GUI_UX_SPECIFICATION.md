@@ -77,6 +77,7 @@ Implemented:
 - replay mode
 - keyframe review with `K`
 - simulation camera modes
+- per-component stress and failure visualization in the viewport
 - integrated wind-tunnel analysis panel
 
 ### External Monitor

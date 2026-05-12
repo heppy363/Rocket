@@ -67,6 +67,7 @@ Those files remain in the repository as UI prototype/reference material, but the
 - pressure heatmap projected directly on the 3D rocket mesh
 - external `F3` monitor window on Windows only
 - flow regime readout, pressure envelope, streamline rendering, component load cards
+- per-component structural failure highlighting when stress limits are exceeded
 - synthetic shockwave and aeroelastic indicators
 - solver/render particle counters from the real-time CFD module
 

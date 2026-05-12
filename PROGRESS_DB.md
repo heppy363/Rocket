@@ -59,6 +59,7 @@ Current reality:
 - aerodynamic normal force and restoring moment: implemented
 - damping term: implemented
 - recovery drag and parachute deployment logic: implemented
+- per-component structural failure visualization during F2 simulation: implemented
 - key mission events and replay: implemented
 - rail guidance / launch rod phase: not yet implemented
 - layered wind profile and dispersion map: not yet implemented
