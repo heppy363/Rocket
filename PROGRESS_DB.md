@@ -9,7 +9,8 @@ The project has now clearly consolidated around the `raylib` desktop application
 Current reality:
 
 - the active executable is `rocket_sim`
-- the primary UI is the 3D workspace in `src/RocketApp.cpp`
+- the primary UI is the `raylib` 3D workspace in `src/RocketApp.cpp`
+- the active control shell is now `Dear ImGui` via `external/imgui` + `external/rlImGui`
 - procedural modeling, simulation, and aero diagnostics are all wired together
 
 ## Module Status
@@ -19,7 +20,10 @@ Current reality:
 - `RocketApp.cpp`: implemented and active
 - `src/app/*.inl`: implemented and actively used by the main app
 - `src/app/RocketAppUiTrajectory.inl`: extracted from common UI helpers to keep files bounded and cleaner
+- `src/app/RocketAppImGui.inl`: active Dear ImGui shell for the desktop workflow
 - `SimulationMonitor.cpp`: implemented; external monitor available on Windows
+- F2 analytics now use resizable Dear ImGui hosts while preserving the richer legacy telemetry, trajectory, wind-tunnel, and mission panels
+- live telemetry and mission events in F2 now use cleaner native Dear ImGui layout sections, while trajectory and wind tunnel keep the denser visual simulation layer
 
 ### Modeling
 
@@ -126,6 +130,7 @@ Current reality:
 ## Architectural Decisions Locked In
 
 - the primary app path is `raylib`
+- the active UI shell is `Dear ImGui`, not the older custom 2D panel renderer
 - `main.cpp` must remain a minimal bootstrap
 - the physics core stays reusable and separated from the UI shell
 - performance optimizations should prefer deterministic software caches before more invasive approximation layers
@@ -135,6 +140,7 @@ Current reality:
 ## Immediate Risks / Technical Debt
 
 - the `src/app/*.inl` split is better than the old monolith, but still transitional
+- part of the older custom panel code still exists in-tree while the Dear ImGui migration is being completed
 - the new `L1/L2` cache layer is exact-keyed, so it avoids drift but does not yet exploit approximate reuse across nearby states
 - topology edits are serialized, but a full procedural rebuild can still replace local edits
 - the CFD naming can suggest higher fidelity than the current heuristic model actually provides

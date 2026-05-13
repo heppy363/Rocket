@@ -214,8 +214,38 @@ void drawTunnelMetric(
     DrawRectangleRounded(bounds, 0.16f, 8, Color {18, 28, 44, 240});
     DrawRectangleRoundedLinesEx(bounds, 0.16f, 8, 1.2f, Color {51, 65, 85, 255});
     DrawRectangle(static_cast<int>(bounds.x) + 1, static_cast<int>(bounds.y) + 1, 4, static_cast<int>(bounds.height) - 2, accent);
-    DrawText(label.c_str(), static_cast<int>(bounds.x) + 12, static_cast<int>(bounds.y) + 7, 13, Color {148, 163, 184, 255});
-    DrawText(value.c_str(), static_cast<int>(bounds.x) + 12, static_cast<int>(bounds.y) + 24, 16, Color {241, 245, 249, 255});
+    drawSingleLineClippedText(
+        Rectangle {bounds.x + 12.0f, bounds.y + 7.0f, bounds.width - 20.0f, 14.0f},
+        label,
+        13,
+        Color {148, 163, 184, 255});
+    drawSingleLineClippedText(
+        Rectangle {bounds.x + 12.0f, bounds.y + 24.0f, bounds.width - 20.0f, 18.0f},
+        value,
+        16,
+        Color {241, 245, 249, 255});
+}
+
+void drawWindTunnelInfoBlock(
+    const ::Rectangle& bounds,
+    const std::string& label,
+    const std::string& value,
+    Color accent) {
+    DrawRectangleRounded(bounds, 0.18f, 8, Color {16, 24, 38, 236});
+    DrawRectangleRoundedLinesEx(bounds, 0.18f, 8, 1.0f, Color {60, 76, 99, 220});
+    DrawRectangle(static_cast<int>(bounds.x) + 1, static_cast<int>(bounds.y) + 1, 4, static_cast<int>(bounds.height) - 2, accent);
+    drawSingleLineClippedText(
+        Rectangle {bounds.x + 12.0f, bounds.y + 8.0f, bounds.width - 20.0f, 14.0f},
+        label,
+        13,
+        Color {148, 163, 184, 255});
+    drawWrappedText(
+        Rectangle {bounds.x + 12.0f, bounds.y + 26.0f, bounds.width - 20.0f, bounds.height - 34.0f},
+        value,
+        15,
+        Color {241, 245, 249, 255},
+        2,
+        2.0f);
 }
 
 void drawPressureHeatLegend(const ::Rectangle& bounds) {
@@ -247,17 +277,20 @@ void drawWindTunnelPanel(
     const rocket::VehicleModel& vehicle) {
     drawPanel(bounds, "Camera del Vento");
 
+    const float outer_padding = 14.0f;
     const float header_y = bounds.y + 40.0f;
-    const float metric_w = (bounds.width - 54.0f) / 5.0f;
+    const float focus_card_w = std::clamp(bounds.width * 0.32f, 216.0f, 268.0f);
+    const float metric_gap = 6.0f;
+    const float metric_w = (bounds.width - outer_padding * 2.0f - metric_gap * 4.0f) / 5.0f;
     const Color regime_color =
         snapshot.mach_number < 0.8 ? Color {34, 197, 94, 255}
         : snapshot.mach_number < 1.2 ? Color {251, 191, 36, 255}
                                      : Color {239, 68, 68, 255};
-    drawTunnelMetric(Rectangle {bounds.x + 14.0f, header_y, metric_w, 48.0f}, "Regime", flowRegimeLabel(snapshot), regime_color);
-    drawTunnelMetric(Rectangle {bounds.x + 20.0f + metric_w, header_y, metric_w, 48.0f}, "Velocita aria", std::format("{:.1f} m/s", snapshot.relative_air_speed_mps), Color {56, 189, 248, 255});
-    drawTunnelMetric(Rectangle {bounds.x + 26.0f + metric_w * 2.0f, header_y, metric_w, 48.0f}, "AoA", std::format("{:.2f} deg", snapshot.angle_of_attack_deg), Color {168, 85, 247, 255});
-    drawTunnelMetric(Rectangle {bounds.x + 32.0f + metric_w * 3.0f, header_y, metric_w, 48.0f}, "Pressione q", std::format("{:.0f} Pa", snapshot.dynamic_pressure_pa), Color {249, 115, 22, 255});
-    drawTunnelMetric(Rectangle {bounds.x + 38.0f + metric_w * 4.0f, header_y, metric_w, 48.0f}, "Densita", std::format("{:.3f} kg/m3", snapshot.air_density_kgpm3), Color {125, 211, 252, 255});
+    drawTunnelMetric(Rectangle {bounds.x + outer_padding, header_y, metric_w, 48.0f}, "Regime", flowRegimeLabel(snapshot), regime_color);
+    drawTunnelMetric(Rectangle {bounds.x + outer_padding + (metric_w + metric_gap) * 1.0f, header_y, metric_w, 48.0f}, "Velocita aria", std::format("{:.1f} m/s", snapshot.relative_air_speed_mps), Color {56, 189, 248, 255});
+    drawTunnelMetric(Rectangle {bounds.x + outer_padding + (metric_w + metric_gap) * 2.0f, header_y, metric_w, 48.0f}, "AoA", std::format("{:.2f} deg", snapshot.angle_of_attack_deg), Color {168, 85, 247, 255});
+    drawTunnelMetric(Rectangle {bounds.x + outer_padding + (metric_w + metric_gap) * 3.0f, header_y, metric_w, 48.0f}, "Pressione q", std::format("{:.0f} Pa", snapshot.dynamic_pressure_pa), Color {249, 115, 22, 255});
+    drawTunnelMetric(Rectangle {bounds.x + outer_padding + (metric_w + metric_gap) * 4.0f, header_y, metric_w, 48.0f}, "Densita", std::format("{:.3f} kg/m3", snapshot.air_density_kgpm3), Color {125, 211, 252, 255});
 
     constexpr std::array<ComponentSelection, 6> focus_components {
         ComponentSelection::NoseCone,
@@ -268,17 +301,27 @@ void drawWindTunnelPanel(
         ComponentSelection::MotorMount
     };
 
+    const float focus_section_y = bounds.y + 94.0f;
+    const float left_controls_w = bounds.width - outer_padding * 3.0f - focus_card_w;
+    const float selector_gap = 8.0f;
+    const float selector_w = (left_controls_w - selector_gap * 2.0f) / 3.0f;
     for (int index = 0; index < static_cast<int>(focus_components.size()); ++index) {
         const auto focus = focus_components[static_cast<std::size_t>(index)];
         const float column = static_cast<float>(index % 3);
         const float row = static_cast<float>(index / 3);
-        const ::Rectangle button {bounds.x + 14.0f + column * 144.0f, bounds.y + 94.0f + row * 32.0f, 136.0f, 24.0f};
+        const ::Rectangle button {
+            bounds.x + outer_padding + column * (selector_w + selector_gap),
+            focus_section_y + row * 32.0f,
+            selector_w,
+            24.0f
+        };
         if (drawButton(button, componentSelectionLabel(focus), app_state.wind_tunnel_focus == focus, componentSelectionAccent(focus))) {
             app_state.wind_tunnel_focus = focus;
         }
     }
 
-    const ::Rectangle heatmap_button {bounds.x + bounds.width - 196.0f, bounds.y + 92.0f, 182.0f, 24.0f};
+    const float focus_card_x = bounds.x + bounds.width - outer_padding - focus_card_w;
+    const ::Rectangle heatmap_button {focus_card_x, focus_section_y, focus_card_w, 24.0f};
     if (drawButton(
             heatmap_button,
             app_state.show_cfd_pressure_overlay ? "Mesh Heatmap ON" : "Mesh Heatmap OFF",
@@ -287,10 +330,16 @@ void drawWindTunnelPanel(
             ButtonStyle::Outlined)) {
         app_state.show_cfd_pressure_overlay = !app_state.show_cfd_pressure_overlay;
     }
-    drawPressureHeatLegend(Rectangle {bounds.x + bounds.width - 188.0f, bounds.y + 126.0f, 168.0f, 10.0f});
+    drawPressureHeatLegend(Rectangle {focus_card_x + 10.0f, focus_section_y + 34.0f, focus_card_w - 20.0f, 10.0f});
 
-    const ::Rectangle tunnel {bounds.x + 14.0f, bounds.y + 164.0f, bounds.width - 218.0f, bounds.height - 180.0f};
-    const ::Rectangle focus_card {bounds.x + bounds.width - 190.0f, bounds.y + 164.0f, 176.0f, bounds.height - 180.0f};
+    const float content_y = focus_section_y + 64.0f;
+    const ::Rectangle tunnel {
+        bounds.x + outer_padding,
+        content_y,
+        bounds.width - outer_padding * 3.0f - focus_card_w,
+        bounds.height - (content_y - bounds.y) - outer_padding
+    };
+    const ::Rectangle focus_card {focus_card_x, content_y, focus_card_w, tunnel.height};
     DrawRectangleRounded(tunnel, 0.04f, 8, Color {8, 15, 26, 246});
     DrawRectangleRoundedLinesEx(tunnel, 0.04f, 8, 1.0f, Color {45, 64, 89, 255});
     DrawRectangleRounded(focus_card, 0.08f, 8, Color {11, 20, 33, 236});
@@ -396,7 +445,23 @@ void drawWindTunnelPanel(
         DrawLineEx(::Vector2 {shock_x, body_bottom + 18.0f}, ::Vector2 {shock_x + 24.0f, body_top - 18.0f}, 1.6f, Color {251, 191, 36, 120});
     }
 
-    DrawText(std::format("Vento {:.1f} m/s  |  Mach {:.2f}  |  rho {:.3f} kg/m3  |  P0 {:.0f} Pa  |  CFD {} / {}", snapshot.wind_speed_mps, snapshot.mach_number, snapshot.air_density_kgpm3, snapshot.total_pressure_pa, snapshot.cfd_render_particle_count, snapshot.cfd_solver_particle_count).c_str(), static_cast<int>(tunnel.x) + 12, static_cast<int>(tunnel.y + tunnel.height - 22.0f), 14, Color {148, 163, 184, 255});
+    DrawRectangleRounded(
+        Rectangle {tunnel.x + 8.0f, tunnel.y + tunnel.height - 34.0f, tunnel.width - 16.0f, 24.0f},
+        0.18f,
+        8,
+        Color {11, 20, 33, 220});
+    drawSingleLineClippedText(
+        Rectangle {tunnel.x + 14.0f, tunnel.y + tunnel.height - 28.0f, tunnel.width - 28.0f, 14.0f},
+        std::format(
+            "Vento {:.1f} m/s  |  Mach {:.2f}  |  rho {:.3f} kg/m3  |  P0 {:.0f} Pa  |  CFD {} / {}",
+            snapshot.wind_speed_mps,
+            snapshot.mach_number,
+            snapshot.air_density_kgpm3,
+            snapshot.total_pressure_pa,
+            snapshot.cfd_render_particle_count,
+            snapshot.cfd_solver_particle_count),
+        14,
+        Color {148, 163, 184, 255});
 
     if (low_flow_preview) {
         drawInfoCard(Rectangle {tunnel.x + 22.0f, tunnel.y + 18.0f, tunnel.width - 44.0f, 52.0f}, "Flusso quasi nullo", "Avvia la simulazione o aumenta il vento nello scenario per leggere separazione e pressione.", Color {56, 189, 248, 255});
@@ -420,15 +485,60 @@ void drawWindTunnelPanel(
     const double focused_safety_factor = focused_q_limit_pa / std::max(focused_pressure_pa, snapshot.dynamic_pressure_pa * focused_load_factor * 0.65 + 1.0);
     const Color focus_accent = componentSelectionAccent(app_state.wind_tunnel_focus);
 
-    drawStatusChip(Rectangle {focus_card.x + 12.0f, focus_card.y + 12.0f, focus_card.width - 24.0f, 28.0f}, componentSelectionLabel(app_state.wind_tunnel_focus), Color {15, 23, 42, 230}, focus_accent);
-    DrawText("Focus locale", static_cast<int>(focus_card.x) + 12, static_cast<int>(focus_card.y) + 52, 13, Color {148, 163, 184, 255});
-    drawMetricCard(Rectangle {focus_card.x + 12.0f, focus_card.y + 72.0f, focus_card.width - 24.0f, 42.0f}, "Carico stimato", std::format("{:.0f} N", focused_load_n), focus_accent);
-    drawMetricCard(Rectangle {focus_card.x + 12.0f, focus_card.y + 122.0f, focus_card.width - 24.0f, 42.0f}, "Area efficace", std::format("{:.3f} m2", focused_area_m2), Color {56, 189, 248, 255});
-    drawMetricCard(Rectangle {focus_card.x + 12.0f, focus_card.y + 172.0f, focus_card.width - 24.0f, 42.0f}, "Sensibilita AoA", std::format("{:.2f}x", sensitivity), Color {249, 115, 22, 255});
-    DrawText(std::format("P impatto {:.0f} Pa", focused_pressure_pa).c_str(), static_cast<int>(focus_card.x) + 12, static_cast<int>(focus_card.y) + 226, 14, Color {226, 232, 240, 255});
-    DrawText(std::format("{} | E {:.1f} GPa", focused_material.label, focused_material.youngs_modulus_gpa).c_str(), static_cast<int>(focus_card.x) + 12, static_cast<int>(focus_card.y) + 246, 14, Color {226, 232, 240, 255});
-    DrawText(std::format("q rec {:.0f} kPa | SF {:.2f}", focused_q_limit_pa / 1000.0, focused_safety_factor).c_str(), static_cast<int>(focus_card.x) + 12, static_cast<int>(focus_card.y) + 266, 14, focused_safety_factor >= 1.2 ? Color {74, 222, 128, 255} : focused_safety_factor >= 1.0 ? Color {251, 191, 36, 255} : Color {248, 113, 113, 255});
-    DrawText(std::format("Shock {:.2f} | Re {:.2e}", snapshot.shockwave_intensity, focused_reynolds).c_str(), static_cast<int>(focus_card.x) + 12, static_cast<int>(focus_card.y) + 286, 14, Color {226, 232, 240, 255});
-    DrawText(focusedComponentInsight(vehicle.geometry, app_state.wind_tunnel_focus), static_cast<int>(focus_card.x) + 12, static_cast<int>(focus_card.y) + 310, 13, Color {148, 163, 184, 255});
-    drawInlineHint(Rectangle {focus_card.x + 12.0f, focus_card.y + focus_card.height - 30.0f, focus_card.width - 24.0f, 24.0f}, app_state.show_cfd_pressure_overlay ? "Heatmap attiva: la mesh 3D usa la stessa scala di pressione del tunnel." : "Attiva la heatmap per leggere la pressione direttamente sulla mesh 3D.", focus_accent);
+    const float card_padding = 12.0f;
+    const float card_inner_w = focus_card.width - card_padding * 2.0f;
+    const float stat_gap = 10.0f;
+    const float stat_w = (card_inner_w - stat_gap) * 0.5f;
+    drawStatusChip(
+        Rectangle {focus_card.x + card_padding, focus_card.y + 12.0f, card_inner_w, 28.0f},
+        componentSelectionLabel(app_state.wind_tunnel_focus),
+        Color {15, 23, 42, 230},
+        focus_accent);
+    drawSectionCaption(
+        Rectangle {focus_card.x + card_padding, focus_card.y + 50.0f, card_inner_w, 24.0f},
+        "Focus Locale",
+        "Stessa lettura fisica, ordinata come una console.");
+
+    drawWindTunnelInfoBlock(
+        Rectangle {focus_card.x + card_padding, focus_card.y + 82.0f, stat_w, 58.0f},
+        "Carico stimato",
+        std::format("{:.0f} N", focused_load_n),
+        focus_accent);
+    drawWindTunnelInfoBlock(
+        Rectangle {focus_card.x + card_padding + stat_w + stat_gap, focus_card.y + 82.0f, stat_w, 58.0f},
+        "Area efficace",
+        std::format("{:.3f} m2", focused_area_m2),
+        Color {56, 189, 248, 255});
+    drawWindTunnelInfoBlock(
+        Rectangle {focus_card.x + card_padding, focus_card.y + 148.0f, stat_w, 58.0f},
+        "Sensibilita AoA",
+        std::format("{:.2f}x", sensitivity),
+        Color {249, 115, 22, 255});
+    drawWindTunnelInfoBlock(
+        Rectangle {focus_card.x + card_padding + stat_w + stat_gap, focus_card.y + 148.0f, stat_w, 58.0f},
+        "P impatto",
+        std::format("{:.0f} Pa", focused_pressure_pa),
+        Color {125, 211, 252, 255});
+
+    drawSectionCaption(
+        Rectangle {focus_card.x + card_padding, focus_card.y + 218.0f, card_inner_w, 22.0f},
+        "Materiale & Struttura");
+    drawKeyValueLine(Rectangle {focus_card.x + card_padding, focus_card.y + 244.0f, card_inner_w, 18.0f}, "Materiale", std::string(focused_material.label));
+    drawKeyValueLine(Rectangle {focus_card.x + card_padding, focus_card.y + 266.0f, card_inner_w, 18.0f}, "Modulo E", std::format("{:.1f} GPa", focused_material.youngs_modulus_gpa));
+    drawKeyValueLine(Rectangle {focus_card.x + card_padding, focus_card.y + 288.0f, card_inner_w, 18.0f}, "q rec", std::format("{:.0f} kPa", focused_q_limit_pa / 1000.0));
+    drawKeyValueLine(Rectangle {focus_card.x + card_padding, focus_card.y + 310.0f, card_inner_w, 18.0f}, "Safety factor", std::format("{:.2f}", focused_safety_factor));
+    drawKeyValueLine(Rectangle {focus_card.x + card_padding, focus_card.y + 332.0f, card_inner_w, 18.0f}, "Shock / Re", std::format("{:.2f} / {:.2e}", snapshot.shockwave_intensity, focused_reynolds));
+
+    drawSectionCaption(
+        Rectangle {focus_card.x + card_padding, focus_card.y + 362.0f, card_inner_w, 22.0f},
+        "Insight");
+    drawInfoCard(
+        Rectangle {focus_card.x + card_padding, focus_card.y + 388.0f, card_inner_w, 74.0f},
+        componentSelectionLabel(app_state.wind_tunnel_focus),
+        focusedComponentInsight(vehicle.geometry, app_state.wind_tunnel_focus),
+        focus_accent);
+    drawInlineHint(
+        Rectangle {focus_card.x + card_padding, focus_card.y + focus_card.height - 56.0f, card_inner_w, 46.0f},
+        app_state.show_cfd_pressure_overlay ? "Heatmap attiva: la mesh 3D usa la stessa scala di pressione del tunnel." : "Attiva la heatmap per leggere la pressione direttamente sulla mesh 3D.",
+        focus_accent);
 }

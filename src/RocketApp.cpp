@@ -10,7 +10,9 @@
 
 #include "Camera3D.hpp"
 #include "Window.hpp"
+#include "imgui.h"
 #include "raylib.h"
+#include "rlImGui.h"
 #include "rocket/Aerodynamics.hpp"
 #include "rocket/CfdModule.hpp"
 #include "rocket/DesignLibrary.hpp"
@@ -39,6 +41,7 @@ namespace {
 #include "app/RocketAppUiWindTunnel.inl"
 #include "app/RocketAppUiModeling.inl"
 #include "app/RocketAppUiSimulation.inl"
+#include "app/RocketAppImGui.inl"
 
 }  // namespace
 
@@ -98,6 +101,8 @@ int rocket::runRocketLabApp() {
     window.SetMinSize(1280, 760);
     window.SetTargetFPS(60);
     SetWindowPosition(80, 60);
+    rlImGuiSetup(true);
+    applyDarkSpaceTheme();
 
     MeshGenerator mesh_generator(vehicle.geometry, vehicle.cluster);
     resetSimulationRuntime(vehicle, simulation_runtime);
@@ -118,7 +123,7 @@ int rocket::runRocketLabApp() {
         if (IsKeyPressed(KEY_F2)) {
             app_state.workspace = Workspace::Simulation;
         }
-        if (f3_pressed) {
+        if (f3_pressed || app_state.request_simulation_window_toggle) {
             app_state.show_simulation_window = !app_state.show_simulation_window;
             if (app_state.show_simulation_window) {
                 simulation_monitor.start();
@@ -126,6 +131,7 @@ int rocket::runRocketLabApp() {
                 simulation_monitor.stop();
             }
         }
+        app_state.request_simulation_window_toggle = false;
         if (app_state.workspace == Workspace::Modeling && IsKeyPressed(KEY_TAB)) {
             app_state.camera_orbit = !app_state.camera_orbit;
         }
@@ -152,37 +158,6 @@ int rocket::runRocketLabApp() {
 
         if (app_state.show_simulation_window && !simulation_monitor.isRunning() && !f3_pressed) {
             app_state.show_simulation_window = false;
-        }
-
-        const ::Rectangle modeling_workspace_button {286.0f, 14.0f, 176.0f, 36.0f};
-        const ::Rectangle simulation_workspace_button {472.0f, 14.0f, 176.0f, 36.0f};
-        const ::Rectangle replay_route_button {982.0f, 14.0f, 176.0f, 36.0f};
-        const ::Rectangle markers_button {1172.0f, 14.0f, 148.0f, 36.0f};
-        const ::Rectangle fixed_camera_button {1334.0f, 14.0f, 84.0f, 36.0f};
-        const ::Rectangle follow_camera_button {1428.0f, 14.0f, 84.0f, 36.0f};
-        const ::Rectangle free_camera_button {1522.0f, 14.0f, 58.0f, 36.0f};
-        if (isRectangleClicked(modeling_workspace_button)) {
-            app_state.workspace = Workspace::Modeling;
-        }
-        if (isRectangleClicked(simulation_workspace_button)) {
-            app_state.workspace = Workspace::Simulation;
-            app_state.camera_orbit = false;
-        }
-        if (app_state.workspace == Workspace::Simulation && isRectangleClicked(replay_route_button)) {
-            simulation_runtime.replay_active = !simulation_runtime.replay_active;
-            simulation_runtime.replay_time_s = 0.0;
-        }
-        if (app_state.workspace == Workspace::Simulation && isRectangleClicked(markers_button)) {
-            app_state.show_flight_markers = !app_state.show_flight_markers;
-        }
-        if (app_state.workspace == Workspace::Simulation && isRectangleClicked(fixed_camera_button)) {
-            app_state.simulation_camera_mode = SimulationCameraMode::Fixed;
-        }
-        if (app_state.workspace == Workspace::Simulation && isRectangleClicked(follow_camera_button)) {
-            app_state.simulation_camera_mode = SimulationCameraMode::Follow;
-        }
-        if (app_state.workspace == Workspace::Simulation && isRectangleClicked(free_camera_button)) {
-            app_state.simulation_camera_mode = SimulationCameraMode::Free;
         }
 
         const bool simulation_active =
@@ -420,9 +395,6 @@ int rocket::runRocketLabApp() {
         DrawCircle(GetScreenWidth() - 220, 144, 142.0f, Color {110, 164, 255, 16});
         DrawCircle(GetScreenWidth() - 220, 144, 84.0f, Color {219, 233, 255, 12});
 
-        drawWorkspaceBar(app_state, simulation_runtime);
-        drawProjectWorkflowPanel(app_state);
-
         camera.BeginMode();
         DrawPlane(::Vector3 {0.0f, 0.0f, 0.0f}, ::Vector2 {140.0f, 140.0f}, Color {18, 24, 38, 255});
         DrawGrid(app_state.workspace == Workspace::Modeling ? 30 : 40, app_state.workspace == Workspace::Modeling ? 1.0f : 2.0f);
@@ -471,48 +443,24 @@ int rocket::runRocketLabApp() {
             drawFlightMarkerLabels(simulation_runtime, camera);
         }
 
-        if (app_state.workspace == Workspace::Modeling) {
-            updateFloatingWindowDrag(app_state.layout.modeling_toolbar);
-            updateFloatingWindowDrag(app_state.layout.modeling_outliner);
-            updateFloatingWindowDrag(app_state.layout.modeling_library);
-            updateFloatingWindowDrag(app_state.layout.modeling_properties);
-            updateFloatingWindowDrag(app_state.layout.modeling_status);
-            updateFloatingWindowDrag(app_state.layout.modeling_reference);
-
-            drawModelingToolbar(app_state, app_state.layout.modeling_toolbar.bounds);
-            drawModelingOutliner(app_state, app_state.layout.modeling_outliner.bounds);
-            drawPieceLibrary(app_state, vehicle, motor_editor, mesh_generator, simulation_runtime, app_state.layout.modeling_library.bounds);
-            handleGeometryEdits(app_state, vehicle, motor_editor, mesh_generator, simulation_runtime, app_state.layout.modeling_properties.bounds);
-            drawModelingStatusBar(app_state.layout.modeling_status.bounds, app_state, modeling_snapshot, vehicle);
-            drawModelingReferenceWindow(app_state, app_state.layout.modeling_reference.bounds);
-            drawModelingViewportHeader(app_state, vehicle);
-        } else if (app_state.workspace == Workspace::Simulation) {
-            updateFloatingWindowDrag(app_state.layout.sim_telemetry);
-            updateFloatingWindowDrag(app_state.layout.sim_events);
-            updateFloatingWindowDrag(app_state.layout.sim_wind_tunnel);
-            updateFloatingWindowDrag(app_state.layout.sim_overview);
-            updateFloatingWindowDrag(app_state.layout.sim_timeline);
-            updateFloatingWindowDrag(app_state.layout.sim_scenario);
-            if (simulation_runtime.keyframe_preview_active) {
-                updateFloatingWindowDrag(app_state.layout.sim_keyframe);
-            }
-
-            drawSimulationTelemetry(app_state.layout.sim_telemetry.bounds, simulation_snapshot);
-            drawSimulationEvents(app_state.layout.sim_events.bounds, simulation_runtime, vehicle, simulation_snapshot);
-            drawWindTunnelPanel(app_state.layout.sim_wind_tunnel.bounds, app_state, simulation_snapshot, vehicle);
-            drawTrajectoryOverview(app_state.layout.sim_overview.bounds, simulation_runtime);
-            drawSimulationScenario(app_state.layout.sim_scenario.bounds, app_state, simulation_runtime, vehicle, environment);
-            drawSimulationTimeline(app_state.layout.sim_timeline.bounds, simulation_runtime, vehicle);
-            if (simulation_runtime.keyframe_preview_active) {
-                drawMissionKeyframePreview(app_state.layout.sim_keyframe.bounds, simulation_runtime, simulation_snapshot);
-            }
-        }
+        rlImGuiBegin();
+        renderDearImGuiUi(
+            app_state,
+            vehicle,
+            motor_editor,
+            mesh_generator,
+            simulation_runtime,
+            environment,
+            modeling_snapshot,
+            simulation_snapshot);
+        rlImGuiEnd();
 
         DrawFPS(GetScreenWidth() - 100, 18);
         EndDrawing();
     }
 
     simulation_monitor.stop();
+    rlImGuiShutdown();
 
     return 0;
 }

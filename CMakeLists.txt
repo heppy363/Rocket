@@ -37,10 +37,22 @@ target_include_directories(rocket_core
 )
 
 add_executable(rocket_sim
+    external/imgui/imgui.cpp
+    external/imgui/imgui_draw.cpp
+    external/imgui/imgui_tables.cpp
+    external/imgui/imgui_widgets.cpp
+    external/rlImGui/rlImGui.cpp
     src/MeshGenerator.cpp
     src/RocketApp.cpp
     src/SimulationMonitor.cpp
     src/main.cpp
+)
+
+target_include_directories(rocket_sim
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/rlImGui
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/rlImGui/extras
 )
 
 target_link_libraries(rocket_sim
@@ -49,6 +61,10 @@ target_link_libraries(rocket_sim
         raylib
         raylib_cpp
 )
+
+if (WIN32)
+    target_link_libraries(rocket_sim PRIVATE Shell32)
+endif()
 
 if (WIN32)
     target_link_libraries(rocket_core PUBLIC Comdlg32 Winhttp)

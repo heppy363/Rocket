@@ -251,6 +251,7 @@ struct AppState {
     bool simulation_multi_window_mode {true};
     bool show_flight_markers {true};
     bool show_cfd_pressure_overlay {true};
+    bool show_wind_tunnel_panel {true};
     ComponentSelection wind_tunnel_focus {ComponentSelection::NoseCone};
     double reference_board_scale_m {2.6};
     double reference_board_offset_m {};
@@ -278,6 +279,7 @@ struct AppState {
     bool request_project_save_as {};
     bool request_project_load {};
     bool request_project_export {};
+    bool request_simulation_window_toggle {};
     bool show_project_workflow_panel {true};
     std::filesystem::path current_project_path {"projects/rocket_lab_current.rlab"};
     std::filesystem::path current_report_path {"exports/rocket_lab_report.txt"};

@@ -81,6 +81,7 @@ Questi file sono inclusi da `src/RocketApp.cpp` e rappresentano la UI/interactio
 
 - `src/app/RocketAppState.inl`: stato applicativo, runtime missione, helper di rebuild e snapshot.
 - `src/app/RocketAppInteraction.inl`: camera, picking, handle, grid, mesh editing, replay.
+- `src/app/RocketAppImGui.inl`: shell Dear ImGui "Dark Space" per toolbar, inspector, scenario e analytics.
 - `src/app/RocketAppUiTrajectory.inl`: rendering traiettoria, replay ghost e marker di volo.
 - `src/app/RocketAppUiCommon.inl`: primitive UI e utility condivise.
 - `src/app/RocketAppUiWindTunnel.inl`: blocco dedicato al pannello `Wind Tunnel`, streamline, focus card e legenda heatmap.
@@ -96,6 +97,8 @@ Nota:
 
 - `external/raylib/`: libreria grafica vendorizzata.
 - `external/raylib-cpp/`: wrapper C++ vendorizzato.
+- `external/imgui/`: Dear ImGui vendorizzato.
+- `external/rlImGui/`: bridge tra Dear ImGui e raylib.
 
 ## Output Directories
 

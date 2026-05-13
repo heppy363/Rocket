@@ -779,6 +779,9 @@ bool pointInWindow(const FloatingWindowState& window, ::Vector2 point) {
 }
 
 bool isMouseOverModelingUi(const AppState& app_state) {
+    if (ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().WantCaptureMouse) {
+        return true;
+    }
     const ::Vector2 mouse = GetMousePosition();
     return pointInWindow(app_state.layout.modeling_toolbar, mouse) ||
            pointInWindow(app_state.layout.modeling_outliner, mouse) ||

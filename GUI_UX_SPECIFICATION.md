@@ -11,6 +11,7 @@ This document now describes the active UX direction of the current `raylib` desk
 The current primary interface is:
 
 - `src/RocketApp.cpp`
+- `src/app/RocketAppImGui.inl`
 - `src/app/RocketAppState.inl`
 - `src/app/RocketAppInteraction.inl`
 - `src/app/RocketAppUiCommon.inl`
@@ -26,9 +27,10 @@ The app is organized into two main workspaces:
 
 Design intent:
 
-- modeling should feel like a lightweight CAD/editor
-- simulation should feel like a compact control room
+- modeling should feel like a lightweight CAD/editor inside a Dark Space control shell
+- simulation should feel like a compact control room with denser, faster-to-scan telemetry
 - the 3D viewport remains central in both modes
+- Dear ImGui windows should coordinate the workflow, not fight with the viewport
 
 ## Implemented UX Today
 
@@ -77,6 +79,10 @@ Implemented:
 - simulation camera modes
 - per-component stress and failure visualization in the viewport
 - integrated wind-tunnel analysis panel
+- resizable Dear ImGui host windows wrapped around the richer simulation diagnostics panels
+- native Dear ImGui telemetry/events windows for cleaner scan order without removing the denser visual trajectory and wind-tunnel views
+- wind-tunnel panel visually cleaned to preserve all CFD-style data without label overflow or layout collisions
+- F2 now allows the integrated wind-tunnel panel to be toggled on/off directly from the top-right control area, independently from the external `F3` monitor
 
 ### External Monitor
 
@@ -107,6 +113,7 @@ Implemented:
 
 ### Implemented
 
+- Dear ImGui Dark Space shell
 - workspace split
 - modeling shortcuts
 - CAD-like orbit mode
@@ -149,17 +156,18 @@ Avoid describing the current app as:
 
 - web-like
 - multi-window simulation suite
+- flat generic ImGui tooling
 
 That no longer matches the active build.
 
 ## UX Debt Still Visible
 
 - `src/app/*.inl` still reflects a transitional refactor
-- some UI controls exist as ad-hoc overlays rather than reusable widgets
+- some UI controls still exist as older custom overlays while the Dear ImGui migration is being consolidated
 - the topology editing flow is functional but not yet polished enough to feel fully tool-grade
 
 ## Near-Term UX Goals
 
-1. strengthen the modeling inspector and topology workflow
-2. add richer simulation history views without overloading the layout
-3. keep documentation aligned with the actual `raylib` build path
+1. deepen the Dear ImGui shell until all workflow-critical panels feel cohesive
+2. strengthen the modeling inspector and topology workflow
+3. add richer simulation history views without overloading the layout

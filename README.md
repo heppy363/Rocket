@@ -4,10 +4,11 @@ Desktop prototype in C++23 for procedural rocket modeling, 3D inspection, and fl
 
 ## Current Project State
 
-The current primary application is the `raylib` desktop workspace built from `src/RocketApp.cpp`.
+The current primary application is the `raylib` desktop workspace built from `src/RocketApp.cpp`, with a `Dear ImGui` "Dark Space" control shell layered on top of the live 3D viewport.
 
 Today the project already includes:
 
+- a `Dear ImGui` control shell for the active desktop UI
 - a dual workspace desktop app: `Modelazione` and `Simulazione`
 - procedural rocket geometry with presets for complete vehicles
 - editable components: `Nose Cone`, `Body Tube`, `Transition`, `Fin Set`, `Motor Mount`, `Payload`
@@ -29,6 +30,7 @@ Built by `CMake` today:
 - `rocket_core` static library
 - `rocket_sim` executable
 - dependencies vendored in `external/raylib` and `external/raylib-cpp`
+- UI stack vendored in `external/imgui` and `external/rlImGui`
 
 ## Main Features
 
@@ -111,7 +113,7 @@ build/Debug/rocket_sim.exe
 ```text
 include/rocket/   Public headers for physics, vehicle, mesh, and app entrypoint
 src/              Application, simulation core, mesh generation, monitor window
-src/app/          Internal UI/state/interaction modules used by the raylib frontend
+src/app/          Internal UI/state/interaction modules used by the raylib + Dear ImGui frontend
 external/         Vendored dependencies
 ```
 
@@ -134,6 +136,7 @@ external/         Vendored dependencies
 - the CFD layer is diagnostic and heuristic, not a full volumetric solver
 - the particle CFD neighborhood model is improved but still approximate, not a real Navier-Stokes solver
 - the `L1/L2` acceleration is a software cache layer in the simulation core, not direct control of hardware CPU caches
+- the Dear ImGui frontend is now the active shell, but some legacy custom panel helpers still remain in the source tree as migration support
 
 ## Contributing
 
