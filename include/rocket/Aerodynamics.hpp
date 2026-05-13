@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #include "rocket/FlightState.hpp"
 #include "rocket/VehicleModel.hpp"
 
@@ -11,6 +13,15 @@ struct AerodynamicFrame {
     Vector3 lateral_air_direction_world {};
     double speed_mps {};
     double angle_of_attack_rad {};
+};
+
+struct AerodynamicsCacheStats {
+    std::size_t l2_capacity {};
+    std::size_t l2_valid_entries {};
+    std::size_t l1_hits {};
+    std::size_t l2_hits {};
+    std::size_t misses {};
+    std::size_t writes {};
 };
 
 [[nodiscard]] double computeCurrentPropellantMassKg(
@@ -34,5 +45,7 @@ struct AerodynamicFrame {
 
 [[nodiscard]] AerodynamicFrame computeAerodynamicFrame(
     const FlightState& state) noexcept;
+
+[[nodiscard]] AerodynamicsCacheStats aerodynamicsCacheStats() noexcept;
 
 }  // namespace rocket

@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Ultimo aggiornamento: `2026-05-12`
+Ultimo aggiornamento: `2026-05-13`
 
 ## Highest Priority
 
@@ -21,7 +21,7 @@ Ultimo aggiornamento: `2026-05-12`
 ## Simulation
 
 - [~] Rifinire replay e review keyframe.
-- [ ] Estendere il sistema di cache software `L1/L2` a piu sottosistemi hot-path con metriche di cache hit.
+- [x] Estendere il sistema di cache software `L1/L2` a piu sottosistemi hot-path con metriche di cache hit.
 - [ ] Aggiungere scrub manuale e confronto fra keyframe.
 - [ ] Introdurre grafici storici per quota, Mach, `q`, `rho`, `P`, `P0`, `Re`.
 - [ ] Migliorare il profilo vento con shear multilayer.
@@ -31,6 +31,8 @@ Ultimo aggiornamento: `2026-05-12`
 ## Aero / CFD
 
 - [~] Continuare a rendere piu leggibile e coerente il pannello `Wind Tunnel`.
+  Ultimo passo: monitor esterno `F3` riallineato al tema Dark Space con clipping testo e pannelli coerenti, senza modifiche a simulazione o dati.
+  Refinement successivo: padding aumentato e copertura dark dello sfondo rafforzata per migliorare leggibilita di chip, telemetria e card.
 - [x] Portare la heatmap di pressione direttamente sulla mesh 3D del razzo.
 - [~] Raffinare il solver particellare con neighborhood search piu robusta.
 - [ ] Evolvere shockwave e aeroelastic metrics da euristiche a modelli piu fisici.

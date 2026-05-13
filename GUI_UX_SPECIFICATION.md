@@ -91,6 +91,8 @@ Implemented:
 - `F3` opens a specialized external aerodynamic monitor
 - it is not a duplicate of the whole app
 - it focuses on flow regime, pressures, component loading, and structural response cues
+- the `F3` shell now follows the same Dark Space visual language as the Dear ImGui control room, with clipped labels, denser metric chips, and no white high-contrast breakpoints
+- the `F3` shell also now uses larger padding and stronger dark background coverage so captions and side telemetry stay readable at a glance
 
 ## UX Rules We Should Preserve
 

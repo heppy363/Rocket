@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cmath>
+#include <cstdint>
 
 #include "rocket/Aerodynamics.hpp"
 
@@ -11,10 +13,74 @@ namespace rocket {
 namespace {
 
 constexpr double pi = 3.14159265358979323846;
+constexpr std::size_t l2_cache_capacity = 16;
 
 std::size_t bandIndex(CfdComponentBand band) noexcept {
     return static_cast<std::size_t>(band);
 }
+
+template <typename T>
+void hashCombine(std::uint64_t& seed, const T& value) noexcept {
+    const std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
+    seed ^= bits + 0x9e3779b97f4a7c15ULL + (seed << 6U) + (seed >> 2U);
+}
+
+template <typename Enum>
+void hashEnum(std::uint64_t& seed, Enum value) noexcept {
+    seed ^= static_cast<std::uint64_t>(value) + 0x9e3779b97f4a7c15ULL + (seed << 6U) + (seed >> 2U);
+}
+
+std::uint64_t cfdGeometryFingerprint(const VehicleGeometry& geometry) noexcept {
+    std::uint64_t seed = 0xcbf29ce484222325ULL;
+    hashCombine(seed, geometry.body_length_m);
+    hashCombine(seed, geometry.body_diameter_m);
+    hashCombine(seed, geometry.nose_length_m);
+    hashCombine(seed, geometry.transition_length_m);
+    hashCombine(seed, geometry.transition_aft_diameter_m);
+    hashCombine(seed, geometry.fin_front_from_nose_m);
+    hashCombine(seed, geometry.fin_root_chord_m);
+    hashCombine(seed, geometry.fin_tip_chord_m);
+    hashCombine(seed, geometry.fin_span_m);
+    hashCombine(seed, geometry.fin_sweep_length_m);
+    hashCombine(seed, geometry.fin_thickness_m);
+    hashCombine(seed, geometry.payload_length_m);
+    hashCombine(seed, static_cast<double>(geometry.fin_count));
+    hashCombine(seed, geometry.fin_controls.span_scale);
+    hashCombine(seed, geometry.fin_controls.thickness_scale);
+    hashEnum(seed, geometry.transition_shape);
+    hashEnum(seed, geometry.fin_shape);
+    return seed;
+}
+
+struct CachedCfdGeometry {
+    std::array<double, static_cast<std::size_t>(CfdComponentBand::Count)> component_area_m2 {};
+    std::array<double, static_cast<std::size_t>(CfdComponentBand::Count)> band_start_m {};
+    std::array<double, static_cast<std::size_t>(CfdComponentBand::Count)> band_end_m {};
+    double fin_flexibility_factor {};
+    double body_slenderness_factor {};
+    double interest_area_m2 {};
+    double payload_end_m {};
+    double fin_set_end_m {};
+    double transition_start_m {};
+    double motor_mount_start_m {};
+};
+
+struct CfdCacheEntry {
+    std::uint64_t fingerprint {};
+    CachedCfdGeometry analysis {};
+    bool valid {false};
+};
+
+struct CfdCache {
+    CfdCacheEntry l1 {};
+    std::array<CfdCacheEntry, l2_cache_capacity> l2 {};
+    std::size_t next_l2_slot {};
+    CfdCacheStats stats {
+        .l2_capacity = l2_cache_capacity
+    };
+};
+
+thread_local CfdCache cfd_cache;
 
 double componentBandStart(const VehicleGeometry& geometry, CfdComponentBand band) noexcept {
     switch (band) {
@@ -56,21 +122,89 @@ double componentBandEnd(const VehicleGeometry& geometry, CfdComponentBand band) 
     return geometry.body_length_m;
 }
 
+CachedCfdGeometry analyzeCfdGeometry(const VehicleGeometry& geometry) noexcept {
+    CachedCfdGeometry analysis;
+    for (std::size_t index = 0; index < static_cast<std::size_t>(CfdComponentBand::Count); ++index) {
+        const auto band = static_cast<CfdComponentBand>(index);
+        analysis.band_start_m[index] = componentBandStart(geometry, band);
+        analysis.band_end_m[index] = componentBandEnd(geometry, band);
+    }
+
+    const double thickness = std::max(geometry.fin_thickness_m * geometry.fin_controls.thickness_scale, 0.0015);
+    const double span = std::max(geometry.fin_span_m * geometry.fin_controls.span_scale, 0.02);
+    analysis.fin_flexibility_factor = std::clamp(span / thickness / 42.0, 0.4, 3.5);
+    analysis.body_slenderness_factor =
+        std::clamp(geometry.body_length_m / std::max(geometry.body_diameter_m, 1e-6), 5.0, 28.0);
+
+    const double radius = geometry.body_diameter_m * 0.5;
+    analysis.component_area_m2[bandIndex(CfdComponentBand::NoseCone)] = std::max(0.02, geometry.nose_length_m * radius);
+    analysis.component_area_m2[bandIndex(CfdComponentBand::BodyTube)] = std::max(0.04, geometry.body_length_m * geometry.body_diameter_m);
+    analysis.component_area_m2[bandIndex(CfdComponentBand::Transition)] =
+        std::max(0.02, geometry.transition_length_m * geometry.transition_aft_diameter_m);
+    analysis.component_area_m2[bandIndex(CfdComponentBand::FinSet)] =
+        std::max(0.02, 0.5 * (geometry.fin_root_chord_m + geometry.fin_tip_chord_m) *
+                            geometry.fin_span_m * geometry.fin_controls.span_scale *
+                            static_cast<double>(std::max(geometry.fin_count, 1)));
+    analysis.component_area_m2[bandIndex(CfdComponentBand::Payload)] =
+        std::max(0.02, geometry.payload_length_m * geometry.body_diameter_m * 0.7);
+    analysis.component_area_m2[bandIndex(CfdComponentBand::MotorMount)] =
+        std::max(0.01, geometry.transition_aft_diameter_m * geometry.transition_aft_diameter_m * 0.4);
+
+    analysis.interest_area_m2 =
+        analysis.component_area_m2[bandIndex(CfdComponentBand::BodyTube)] +
+        analysis.component_area_m2[bandIndex(CfdComponentBand::FinSet)] +
+        analysis.component_area_m2[bandIndex(CfdComponentBand::NoseCone)];
+    analysis.payload_end_m = geometry.nose_length_m + geometry.payload_length_m;
+    analysis.fin_set_end_m = geometry.fin_front_from_nose_m + geometry.fin_root_chord_m;
+    analysis.transition_start_m = geometry.body_length_m - geometry.transition_length_m;
+    analysis.motor_mount_start_m =
+        geometry.body_length_m - std::max(geometry.transition_length_m, geometry.body_diameter_m * 0.35);
+    return analysis;
+}
+
+const CachedCfdGeometry& cachedCfdGeometry(const VehicleGeometry& geometry) noexcept {
+    const std::uint64_t fingerprint = cfdGeometryFingerprint(geometry);
+    if (cfd_cache.l1.valid && cfd_cache.l1.fingerprint == fingerprint) {
+        ++cfd_cache.stats.l1_hits;
+        return cfd_cache.l1.analysis;
+    }
+
+    for (const auto& entry : cfd_cache.l2) {
+        if (entry.valid && entry.fingerprint == fingerprint) {
+            cfd_cache.l1 = entry;
+            ++cfd_cache.stats.l2_hits;
+            return cfd_cache.l1.analysis;
+        }
+    }
+
+    cfd_cache.l1 = CfdCacheEntry {
+        .fingerprint = fingerprint,
+        .analysis = analyzeCfdGeometry(geometry),
+        .valid = true
+    };
+    cfd_cache.l2[cfd_cache.next_l2_slot] = cfd_cache.l1;
+    cfd_cache.next_l2_slot = (cfd_cache.next_l2_slot + 1U) % cfd_cache.l2.size();
+    ++cfd_cache.stats.misses;
+    ++cfd_cache.stats.writes;
+    return cfd_cache.l1.analysis;
+}
+
 CfdComponentBand classifyBand(const VehicleGeometry& geometry, double station_from_nose_m) noexcept {
-    if (station_from_nose_m <= geometry.nose_length_m) {
+    const auto& cached = cachedCfdGeometry(geometry);
+    if (station_from_nose_m <= cached.band_end_m[bandIndex(CfdComponentBand::NoseCone)]) {
         return CfdComponentBand::NoseCone;
     }
-    if (station_from_nose_m <= geometry.nose_length_m + geometry.payload_length_m) {
+    if (station_from_nose_m <= cached.payload_end_m) {
         return CfdComponentBand::Payload;
     }
-    if (station_from_nose_m >= geometry.fin_front_from_nose_m &&
-        station_from_nose_m <= geometry.fin_front_from_nose_m + geometry.fin_root_chord_m) {
+    if (station_from_nose_m >= cached.band_start_m[bandIndex(CfdComponentBand::FinSet)] &&
+        station_from_nose_m <= cached.fin_set_end_m) {
         return CfdComponentBand::FinSet;
     }
-    if (station_from_nose_m >= geometry.body_length_m - geometry.transition_length_m) {
+    if (station_from_nose_m >= cached.transition_start_m) {
         return CfdComponentBand::Transition;
     }
-    if (station_from_nose_m >= geometry.body_length_m - std::max(geometry.transition_length_m, geometry.body_diameter_m * 0.35)) {
+    if (station_from_nose_m >= cached.motor_mount_start_m) {
         return CfdComponentBand::MotorMount;
     }
     return CfdComponentBand::BodyTube;
@@ -92,35 +226,15 @@ Vector3 lateralAirDirectionWorld(const FlightState& state, const Vector3& relati
 }
 
 double finFlexibilityFactor(const VehicleGeometry& geometry) noexcept {
-    const double thickness = std::max(geometry.fin_thickness_m * geometry.fin_controls.thickness_scale, 0.0015);
-    const double span = std::max(geometry.fin_span_m * geometry.fin_controls.span_scale, 0.02);
-    return std::clamp(span / thickness / 42.0, 0.4, 3.5);
+    return cachedCfdGeometry(geometry).fin_flexibility_factor;
 }
 
 double bodySlendernessFactor(const VehicleGeometry& geometry) noexcept {
-    return std::clamp(geometry.body_length_m / std::max(geometry.body_diameter_m, 1e-6), 5.0, 28.0);
+    return cachedCfdGeometry(geometry).body_slenderness_factor;
 }
 
 double componentAreaEstimate(const VehicleGeometry& geometry, CfdComponentBand band) noexcept {
-    const double radius = geometry.body_diameter_m * 0.5;
-    switch (band) {
-    case CfdComponentBand::NoseCone:
-        return std::max(0.02, geometry.nose_length_m * radius);
-    case CfdComponentBand::BodyTube:
-        return std::max(0.04, geometry.body_length_m * geometry.body_diameter_m);
-    case CfdComponentBand::Transition:
-        return std::max(0.02, geometry.transition_length_m * geometry.transition_aft_diameter_m);
-    case CfdComponentBand::FinSet:
-        return std::max(0.02, 0.5 * (geometry.fin_root_chord_m + geometry.fin_tip_chord_m) *
-            geometry.fin_span_m * geometry.fin_controls.span_scale * static_cast<double>(std::max(geometry.fin_count, 1)));
-    case CfdComponentBand::Payload:
-        return std::max(0.02, geometry.payload_length_m * geometry.body_diameter_m * 0.7);
-    case CfdComponentBand::MotorMount:
-        return std::max(0.01, geometry.transition_aft_diameter_m * geometry.transition_aft_diameter_m * 0.4);
-    case CfdComponentBand::Count:
-        break;
-    }
-    return 0.02;
+    return cachedCfdGeometry(geometry).component_area_m2[bandIndex(band)];
 }
 
 bool isRecoveryFlowState(
@@ -159,11 +273,9 @@ void RealTimeCfdField::update(
     const double speed_of_sound = std::max(environment.speedOfSoundMps(state.position_m.z), 1.0);
     const double mach = air_speed_mps / speed_of_sound;
     const bool recovery_flow = isRecoveryFlowState(state, vehicle, time_s);
+    const auto& cached_geometry = cachedCfdGeometry(vehicle.geometry);
     const double aoa_deg = std::abs(std::asin(std::clamp(dot(relative_air_velocity_world_mps.normalized(), rotateVector(state.attitude_body_to_world, Vector3 {0.0, 0.0, 1.0})), -1.0, 1.0))) * 180.0 / pi;
-    const double interest_area_m2 =
-        componentAreaEstimate(vehicle.geometry, CfdComponentBand::BodyTube) +
-        componentAreaEstimate(vehicle.geometry, CfdComponentBand::FinSet) +
-        componentAreaEstimate(vehicle.geometry, CfdComponentBand::NoseCone);
+    const double interest_area_m2 = cached_geometry.interest_area_m2;
     const double density_scale = std::clamp(air_density / 1.225, 0.35, 1.25);
     const double target_particle_scale =
         recovery_flow
@@ -193,7 +305,8 @@ void RealTimeCfdField::update(
     frame_.component_pressure_pa.fill(0.0);
     frame_.solver_particle_count = target_particles;
     frame_.shockwave_intensity = recovery_flow ? 0.0 : std::clamp(1.0 - std::abs(mach - 1.0) / 0.22, 0.0, 1.0);
-    frame_.aeroelastic_response = std::clamp(dynamic_pressure_pa / 42000.0 * finFlexibilityFactor(vehicle.geometry) * 0.18, 0.0, 0.35);
+    frame_.aeroelastic_response =
+        std::clamp(dynamic_pressure_pa / 42000.0 * cached_geometry.fin_flexibility_factor * 0.18, 0.0, 0.35);
 
     const int grid_w = 40;
     const int grid_h = 24;
@@ -314,8 +427,7 @@ void RealTimeCfdField::update(
     }
 
     for (std::size_t i = 0; i < frame_.component_pressure_pa.size(); ++i) {
-        const auto band = static_cast<CfdComponentBand>(i);
-        const double area = componentAreaEstimate(vehicle.geometry, band);
+        const double area = cached_geometry.component_area_m2[i];
         frame_.component_pressure_pa[i] /= std::max(area * 220.0, 1.0);
     }
 
@@ -352,9 +464,10 @@ CfdAugmentation computeCfdAugmentation(
         return augmentation;
     }
 
+    const auto& cached_geometry = cachedCfdGeometry(vehicle.geometry);
     const double aoa_abs = std::abs(angle_of_attack_rad);
     const double shockwave_intensity = std::clamp(1.0 - std::abs(mach_number - 1.0) / 0.22, 0.0, 1.0);
-    const double fin_flexibility = finFlexibilityFactor(vehicle.geometry);
+    const double fin_flexibility = cached_geometry.fin_flexibility_factor;
     const double aeroelastic_response =
         std::clamp(dynamic_pressure_pa / 42000.0 * fin_flexibility * (0.14 + shockwave_intensity * 0.10), 0.0, 0.42);
     const double drag_gain = 0.035 + shockwave_intensity * 0.11 + aoa_abs * 0.09 + aeroelastic_response * 0.22;
@@ -373,7 +486,7 @@ CfdAugmentation computeCfdAugmentation(
 
     for (std::size_t i = 0; i < augmentation.component_pressure_pa.size(); ++i) {
         const auto band = static_cast<CfdComponentBand>(i);
-        const double area = componentAreaEstimate(vehicle.geometry, band);
+        const double area = cached_geometry.component_area_m2[i];
         double local_gain = 0.82;
         if (band == CfdComponentBand::NoseCone) {
             local_gain = 1.18 + shockwave_intensity * 0.28;
@@ -388,6 +501,19 @@ CfdAugmentation computeCfdAugmentation(
     augmentation.aeroelastic_response = aeroelastic_response;
     (void)environment;
     return augmentation;
+}
+
+CfdCacheStats cfdCacheStats() noexcept {
+    const auto valid_entries = static_cast<std::size_t>(std::count_if(
+        cfd_cache.l2.begin(),
+        cfd_cache.l2.end(),
+        [](const CfdCacheEntry& entry) {
+            return entry.valid;
+        }));
+
+    CfdCacheStats stats = cfd_cache.stats;
+    stats.l2_valid_entries = valid_entries;
+    return stats;
 }
 
 }  // namespace rocket

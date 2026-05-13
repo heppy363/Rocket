@@ -53,6 +53,8 @@ Current reality:
 
 - RK4 integrator: implemented
 - software `L1/L2` cache layer for repeated core calculations: implemented
+- aerodynamic geometry `L1/L2` cache for repeated `CP` lookups: implemented
+- CFD geometry `L1/L2` cache for repeated component area / band analysis: implemented
 - variable mass during burn: implemented
 - thrust force and thrust moment from clustered motors: implemented
 - motor failure toggles: implemented
@@ -70,6 +72,7 @@ Current reality:
 - launch site and surface weather model: implemented
 - atmosphere derived from site and altitude: implemented
 - atmosphere `L1/L2` cache for repeated altitude queries: implemented
+- live cache hit counters now exposed for geometry, aerodynamics, CFD, atmosphere, and wind in the debug terminal: implemented
 - wind-relative velocity: implemented
 - provider enum and query URL helper: implemented
 - live weather fetch service: implemented
@@ -92,6 +95,8 @@ Current reality:
 - in-workspace wind tunnel panel: implemented
 - wind tunnel panel readability pass with dedicated module split: implemented
 - external `F3` wind-tunnel monitor: implemented on Windows
+- external `F3` wind-tunnel monitor style pass aligned to the Dear ImGui Dark Space shell without changing CFD logic or data: implemented
+- external `F3` wind-tunnel monitor readability pass with stronger padding and darker shell background coverage: implemented
 - component-oriented aero cards: implemented
 - synthetic shockwave and aeroelastic metrics: implemented
 - real-time particle field for CFD-style diagnostics: implemented

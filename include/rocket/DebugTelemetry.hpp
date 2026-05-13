@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "rocket/Aerodynamics.hpp"
+#include "rocket/CfdModule.hpp"
 #include "rocket/Environment.hpp"
 #include "rocket/SimulationCaches.hpp"
 #include "rocket/SimulationMonitor.hpp"
@@ -27,6 +29,8 @@ struct DebugTelemetrySnapshot {
     double gpu_shared_budget_mb {};
     bool gpu_metrics_available {};
     std::string gpu_adapter_name {"Unavailable"};
+    AerodynamicsCacheStats aerodynamics_cache {};
+    CfdCacheStats cfd_cache {};
     SimulationCacheStats simulation_cache {};
     EnvironmentCacheStats environment_cache {};
     SimulationSnapshot snapshot {};

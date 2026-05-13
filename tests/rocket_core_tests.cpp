@@ -3,6 +3,8 @@
 #include <expected>
 #include <iostream>
 
+#include "rocket/Aerodynamics.hpp"
+#include "rocket/CfdModule.hpp"
 #include "rocket/Environment.hpp"
 #include "rocket/RungeKutta4.hpp"
 #include "rocket/SimulationCaches.hpp"
@@ -113,6 +115,48 @@ bool testTwoLevelCachesPreserveResults() {
                "Vehicle geometry L1/L2 software cache should preserve derived structural results");
 }
 
+bool testExtendedCachesExposeHits() {
+    const rocket::VehicleModel vehicle = makeValidVehicle();
+    const rocket::Environment environment;
+    rocket::FlightState state = rocket::buildRestState(vehicle);
+    state.position_m.z = 150.0;
+    state.velocity_mps = {12.0, 1.5, 64.0};
+
+    const auto aero_before = rocket::aerodynamicsCacheStats();
+    const auto cfd_before = rocket::cfdCacheStats();
+
+    const double cp_first = rocket::computeCenterOfPressureFromNoseM(vehicle);
+    const double cp_second = rocket::computeCenterOfPressureFromNoseM(vehicle);
+    const auto cfd_first = rocket::computeCfdAugmentation(
+        state,
+        vehicle,
+        environment,
+        state.velocity_mps,
+        3200.0,
+        0.82,
+        0.07);
+    const auto cfd_second = rocket::computeCfdAugmentation(
+        state,
+        vehicle,
+        environment,
+        state.velocity_mps,
+        3200.0,
+        0.82,
+        0.07);
+
+    const auto aero_after = rocket::aerodynamicsCacheStats();
+    const auto cfd_after = rocket::cfdCacheStats();
+
+    return check(
+               nearlyEqual(cp_first, cp_second) &&
+                   aero_after.l1_hits + aero_after.l2_hits > aero_before.l1_hits + aero_before.l2_hits,
+               "Aerodynamics L1/L2 software cache should record reuse on repeated CP queries") &&
+           check(
+               nearlyEqual(cfd_first.aeroelastic_response, cfd_second.aeroelastic_response) &&
+                   cfd_after.l1_hits + cfd_after.l2_hits > cfd_before.l1_hits + cfd_before.l2_hits,
+               "CFD geometry L1/L2 software cache should record reuse on repeated augmentation queries");
+}
+
 }  // namespace
 
 int main() {
@@ -121,6 +165,7 @@ int main() {
     ok = testTryIntegrateRk4AdvancesState() && ok;
     ok = testSimulationRuntimeStep() && ok;
     ok = testTwoLevelCachesPreserveResults() && ok;
+    ok = testExtendedCachesExposeHits() && ok;
 
     if (!ok) {
         return EXIT_FAILURE;

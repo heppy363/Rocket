@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <vector>
 
 #include "rocket/Environment.hpp"
@@ -46,6 +47,15 @@ struct CfdFrameData {
     double aeroelastic_response {};
 };
 
+struct CfdCacheStats {
+    std::size_t l2_capacity {};
+    std::size_t l2_valid_entries {};
+    std::size_t l1_hits {};
+    std::size_t l2_hits {};
+    std::size_t misses {};
+    std::size_t writes {};
+};
+
 class RealTimeCfdField {
 public:
     void update(
@@ -84,5 +94,7 @@ private:
     double dynamic_pressure_pa,
     double mach_number,
     double angle_of_attack_rad) noexcept;
+
+[[nodiscard]] CfdCacheStats cfdCacheStats() noexcept;
 
 }  // namespace rocket

@@ -16,8 +16,10 @@
 #ifdef _WIN32
 #define NOMINMAX
 #include <dwmapi.h>
+#include <uxtheme.h>
 #include <windows.h>
 #pragma comment(lib, "dwmapi.lib")
+#pragma comment(lib, "uxtheme.lib")
 #endif
 
 namespace rocket {
@@ -148,6 +150,7 @@ void applyDarkWindowTheme(HWND hwnd) {
     const BOOL enabled = TRUE;
     const COLORREF background = RGB(7, 14, 24);
     const COLORREF caption = RGB(241, 245, 249);
+    SetWindowTheme(hwnd, L"DarkMode_Explorer", nullptr);
     DwmSetWindowAttribute(hwnd, 20, &enabled, sizeof(enabled));
     DwmSetWindowAttribute(hwnd, 19, &enabled, sizeof(enabled));
     DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, &background, sizeof(background));
@@ -277,7 +280,7 @@ private:
 
     void createWindows() {
         const RECT rect {220, 120, 1400, 820};
-        panels_[0] = PanelWindow {this, PanelKind::WindTunnel, L"Rocket Wind Tunnel"};
+        panels_[0] = PanelWindow {this, PanelKind::WindTunnel, L" "};
 
         const int width = rect.right - rect.left;
         const int height = rect.bottom - rect.top;
@@ -376,8 +379,8 @@ private:
         HBITMAP buffer = CreateCompatibleBitmap(window_dc, std::max(1L, client.right), std::max(1L, client.bottom));
         HGDIOBJ old_bitmap = SelectObject(hdc, buffer);
 
-        fillRect(hdc, client, RGB(7, 14, 24));
-        fillRect(hdc, RECT {0, 0, client.right, 40}, RGB(13, 23, 39));
+        fillRect(hdc, client, RGB(5, 10, 18));
+        fillRect(hdc, RECT {0, 0, client.right, client.bottom}, RGB(7, 14, 24));
         HPEN frame_pen = CreatePen(PS_SOLID, 1, RGB(51, 65, 85));
         HGDIOBJ old_pen = SelectObject(hdc, frame_pen);
         HGDIOBJ old_brush = SelectObject(hdc, GetStockObject(HOLLOW_BRUSH));
@@ -389,12 +392,9 @@ private:
         SetBkMode(hdc, TRANSPARENT);
         SetTextColor(hdc, RGB(241, 245, 249));
 
-        HFONT title_font = CreateFontW(22, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-        HFONT body_font = CreateFontW(17, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+        HFONT title_font = CreateFontW(24, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+        HFONT body_font = CreateFontW(18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
         HFONT old_font = static_cast<HFONT>(SelectObject(hdc, title_font));
-
-        Rectangle(hdc, 0, 0, client.right, client.bottom);
-        TextOutW(hdc, 16, 14, panelTitle(kind).c_str(), static_cast<int>(panelTitle(kind).size()));
 
         SelectObject(hdc, body_font);
 
@@ -449,30 +449,115 @@ private:
         DeleteObject(pen);
     }
 
+    void fillRoundedRect(HDC hdc, const RECT& rect, COLORREF fill, COLORREF border, int radius = 14) {
+        HBRUSH brush = CreateSolidBrush(fill);
+        HPEN pen = CreatePen(PS_SOLID, 1, border);
+        HGDIOBJ old_brush = SelectObject(hdc, brush);
+        HGDIOBJ old_pen = SelectObject(hdc, pen);
+        RoundRect(hdc, rect.left, rect.top, rect.right, rect.bottom, radius, radius);
+        SelectObject(hdc, old_brush);
+        SelectObject(hdc, old_pen);
+        DeleteObject(brush);
+        DeleteObject(pen);
+    }
+
+    void drawTextRect(
+        HDC hdc,
+        const RECT& rect,
+        const std::wstring& text,
+        COLORREF color,
+        UINT format = DT_LEFT | DT_TOP | DT_NOPREFIX | DT_END_ELLIPSIS) {
+        RECT draw_rect = rect;
+        SetTextColor(hdc, color);
+        DrawTextW(hdc, text.c_str(), static_cast<int>(text.size()), &draw_rect, format);
+    }
+
+    void drawMetricChip(
+        HDC hdc,
+        const RECT& rect,
+        const std::wstring& label,
+        const std::wstring& value,
+        COLORREF accent) {
+        fillRoundedRect(hdc, rect, RGB(13, 22, 36), RGB(45, 64, 89), 18);
+        RECT label_rect {rect.left + 14, rect.top + 8, rect.right - 14, rect.top + 24};
+        RECT value_rect {rect.left + 14, rect.top + 24, rect.right - 14, rect.bottom - 8};
+        drawTextRect(hdc, label_rect, label, RGB(134, 146, 166), DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+        drawTextRect(hdc, value_rect, value, accent, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+    }
+
+    void drawKeyValueRow(
+        HDC hdc,
+        const RECT& rect,
+        const std::wstring& label,
+        const std::wstring& value,
+        COLORREF value_color = RGB(226, 232, 240)) {
+        const int split_x = rect.left + 112;
+        drawTextRect(
+            hdc,
+            RECT {rect.left, rect.top, split_x - 8, rect.bottom},
+            label,
+            RGB(148, 163, 184),
+            DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+        drawTextRect(
+            hdc,
+            RECT {split_x, rect.top, rect.right, rect.bottom},
+            value,
+            value_color,
+            DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+    }
+
     void paintWindTunnel(HDC hdc, const RECT& client, const SimulationMonitorState& state) {
-        RECT analysis_panel {18, 118, client.right - 360, client.bottom - 24};
-        RECT part_panel {client.right - 324, 118, client.right - 18, client.bottom - 24};
+        const COLORREF shell_bg = RGB(7, 14, 24);
+        const COLORREF surface_bg = RGB(10, 18, 30);
+        const COLORREF raised_bg = RGB(14, 24, 39);
+        const COLORREF border = RGB(45, 64, 89);
+        const COLORREF title = RGB(241, 245, 249);
+        const COLORREF muted = RGB(136, 149, 167);
+        fillRect(hdc, client, shell_bg);
+        fillRoundedRect(hdc, RECT {8, 8, client.right - 8, client.bottom - 8}, RGB(8, 15, 26), RGB(18, 30, 48), 26);
+
+        RECT header_band {18, 18, client.right - 18, 92};
+        fillRoundedRect(hdc, header_band, RGB(9, 18, 31), border, 22);
+        drawTextRect(
+            hdc,
+            RECT {header_band.left + 16, header_band.top + 12, header_band.left + 280, header_band.top + 30},
+            L"External CFD monitor",
+            muted,
+            DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+
+        const int chip_y = header_band.top + 8;
+        const int chip_h = 46;
+        const int chip_gap = 10;
+        const int chip_w = 146;
+        int chip_x = header_band.left + 240;
+        drawMetricChip(hdc, RECT {chip_x, chip_y, chip_x + chip_w, chip_y + chip_h}, L"Flow Regime", flowRegimeLabel(state.snapshot), RGB(226, 232, 240));
+        chip_x += chip_w + chip_gap;
+        drawMetricChip(hdc, RECT {chip_x, chip_y, chip_x + chip_w, chip_y + chip_h}, L"Air Speed", formatNumber(state.snapshot.relative_air_speed_mps, 1) + L" m/s", RGB(56, 189, 248));
+        chip_x += chip_w + chip_gap;
+        drawMetricChip(hdc, RECT {chip_x, chip_y, chip_x + chip_w, chip_y + chip_h}, L"AoA", formatNumber(state.snapshot.angle_of_attack_deg, 2) + L" deg", RGB(168, 85, 247));
+        chip_x += chip_w + chip_gap;
+        drawMetricChip(hdc, RECT {chip_x, chip_y, chip_x + chip_w, chip_y + chip_h}, L"q Dynamic", formatNumber(state.snapshot.dynamic_pressure_pa, 0) + L" Pa", RGB(249, 115, 22));
+        chip_x += chip_w + chip_gap;
+        drawMetricChip(hdc, RECT {chip_x, chip_y, chip_x + chip_w, chip_y + chip_h}, L"Mach", formatNumber(state.snapshot.mach_number, 2), RGB(226, 232, 240));
+        chip_x += chip_w + chip_gap;
+        drawMetricChip(hdc, RECT {chip_x, chip_y, chip_x + chip_w, chip_y + chip_h}, L"Density", formatNumber(state.snapshot.air_density_kgpm3, 3) + L" kg/m3", RGB(125, 211, 252));
+        chip_x += chip_w + chip_gap;
+        drawMetricChip(hdc, RECT {chip_x, chip_y, chip_x + chip_w, chip_y + chip_h}, L"Total P", formatNumber(state.snapshot.total_pressure_pa, 0) + L" Pa", RGB(148, 163, 184));
+
+        RECT analysis_panel {18, 118, client.right - 388, client.bottom - 24};
+        RECT part_panel {client.right - 352, 118, client.right - 18, client.bottom - 24};
         RECT heatmap {analysis_panel.left, analysis_panel.top, analysis_panel.right, analysis_panel.top + 318};
         RECT profile {analysis_panel.left, analysis_panel.top + 332, analysis_panel.right, analysis_panel.bottom};
-        fillRect(hdc, analysis_panel, RGB(8, 15, 26));
-        strokeRect(hdc, analysis_panel, RGB(45, 64, 89));
-        fillRect(hdc, part_panel, RGB(11, 20, 33));
-        strokeRect(hdc, part_panel, RGB(45, 64, 89));
-        fillRect(hdc, heatmap, RGB(9, 17, 28));
-        strokeRect(hdc, heatmap, RGB(45, 64, 89));
-        fillRect(hdc, profile, RGB(9, 17, 28));
-        strokeRect(hdc, profile, RGB(45, 64, 89));
+        fillRoundedRect(hdc, analysis_panel, surface_bg, border, 18);
+        fillRoundedRect(hdc, part_panel, surface_bg, border, 18);
+        fillRoundedRect(hdc, heatmap, raised_bg, border, 16);
+        fillRoundedRect(hdc, profile, raised_bg, border, 16);
 
-        drawLine(hdc, 18, 54, L"Flow Regime   " + flowRegimeLabel(state.snapshot), RGB(226, 232, 240));
-        drawLine(hdc, 240, 54, L"Air " + formatNumber(state.snapshot.relative_air_speed_mps, 1) + L" m/s", RGB(56, 189, 248));
-        drawLine(hdc, 420, 54, L"AoA " + formatNumber(state.snapshot.angle_of_attack_deg, 2) + L" deg", RGB(168, 85, 247));
-        drawLine(hdc, 580, 54, L"q " + formatNumber(state.snapshot.dynamic_pressure_pa, 0) + L" Pa", RGB(249, 115, 22));
-        drawLine(hdc, 760, 54, L"Mach " + formatNumber(state.snapshot.mach_number, 2), RGB(226, 232, 240));
-        drawLine(hdc, 930, 54, L"rho " + formatNumber(state.snapshot.air_density_kgpm3, 3) + L" kg/m3", RGB(125, 211, 252));
-        drawLine(hdc, 1120, 54, L"P0 " + formatNumber(state.snapshot.total_pressure_pa, 0) + L" Pa", RGB(148, 163, 184));
-        drawLine(hdc, heatmap.left + 14, heatmap.top + 12, L"Altitude / Velocity Load Envelope", RGB(248, 250, 252));
-        drawLine(hdc, profile.left + 14, profile.top + 12, L"Pressure Recovery, Streamlines & Structural Response", RGB(248, 250, 252));
-        drawLine(hdc, client.right - 320, 54, L"Telemetry & Component Response", RGB(248, 250, 252));
+        fillRect(hdc, RECT {heatmap.left + 1, heatmap.top + 1, heatmap.right - 1, heatmap.top + 38}, RGB(13, 23, 39));
+        fillRect(hdc, RECT {profile.left + 1, profile.top + 1, profile.right - 1, profile.top + 38}, RGB(13, 23, 39));
+        drawTextRect(hdc, RECT {heatmap.left + 14, heatmap.top + 11, heatmap.right - 14, heatmap.top + 31}, L"Altitude / Velocity Load Envelope", title, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+        drawTextRect(hdc, RECT {profile.left + 14, profile.top + 11, profile.right - 14, profile.top + 31}, L"Pressure Recovery, Streamlines & Structural Response", title, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+        drawTextRect(hdc, RECT {part_panel.left + 14, part_panel.top + 11, part_panel.right - 14, part_panel.top + 31}, L"Telemetry & Component Response", title, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
 
         const auto pressure_color = [](double pressure_ratio) {
             const double clamped = std::clamp(pressure_ratio, 0.0, 1.0);
@@ -927,82 +1012,88 @@ private:
                 }) / 1000.0;
 
         auto draw_part_card = [&](int y, const wchar_t* title, ComponentType component, ComponentMaterial material, double aero_factor, double deform_factor, const wchar_t* role) {
-            RECT card {part_panel.left + 12, y, part_panel.right - 12, y + 76};
-            fillRect(hdc, card, RGB(16, 27, 45));
-            strokeRect(hdc, card, RGB(51, 65, 85));
-            const int aero_width = static_cast<int>(std::clamp(aero_factor / 3.2, 0.0, 1.0) * static_cast<double>(card.right - card.left - 24));
-            const int deform_width = static_cast<int>(std::clamp(deform_factor, 0.0, 1.0) * static_cast<double>(card.right - card.left - 24));
+            RECT card {part_panel.left + 12, y, part_panel.right - 12, y + 86};
+            fillRoundedRect(hdc, card, RGB(16, 27, 45), RGB(51, 65, 85), 14);
+            const int content_width = card.right - card.left - 24;
+            const int aero_width = static_cast<int>(std::clamp(aero_factor / 3.2, 0.0, 1.0) * static_cast<double>(content_width));
+            const int deform_width = static_cast<int>(std::clamp(deform_factor, 0.0, 1.0) * static_cast<double>(content_width));
             const double q_limit_pa = estimateComponentDynamicPressureLimitPa(component, state.geometry);
             const double safety_factor = q_limit_pa / std::max(q_current * std::max(aero_factor, 0.22), 1.0);
             const auto definition = materialDefinition(material);
-            fillRect(hdc, RECT {card.left + 12, card.top + 42, card.left + 12 + aero_width, card.top + 52}, pressure_color(std::clamp(aero_factor / 3.2, 0.0, 1.0)));
-            fillRect(hdc, RECT {card.left + 12, card.top + 56, card.left + 12 + deform_width, card.top + 66}, risk_color(deform_factor));
-            drawLine(hdc, card.left + 12, card.top + 10, title, RGB(248, 250, 252));
-            drawLine(hdc, card.left + 118, card.top + 10, L"Load " + formatNumber(q_current * aero_factor / 1000.0, 1) + L" kPa", pressure_color(std::clamp(aero_factor / 3.2, 0.0, 1.0)));
-            drawLine(
+            fillRect(hdc, RECT {card.left + 12, card.top + 46, card.left + 12 + aero_width, card.top + 58}, pressure_color(std::clamp(aero_factor / 3.2, 0.0, 1.0)));
+            fillRect(hdc, RECT {card.left + 12, card.top + 62, card.left + 12 + deform_width, card.top + 74}, risk_color(deform_factor));
+            fillRect(hdc, RECT {card.left + 1, card.top + 1, card.left + 6, card.bottom - 1}, pressure_color(std::clamp(aero_factor / 3.2, 0.0, 1.0)));
+            drawTextRect(
                 hdc,
-                card.left + 12,
-                card.top + 24,
+                RECT {card.left + 12, card.top + 10, card.left + 126, card.top + 30},
+                title,
+                RGB(248, 250, 252),
+                DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+            drawTextRect(
+                hdc,
+                RECT {card.left + 128, card.top + 10, card.right - 12, card.top + 30},
+                L"Load " + formatNumber(q_current * aero_factor / 1000.0, 1) + L" kPa",
+                pressure_color(std::clamp(aero_factor / 3.2, 0.0, 1.0)),
+                DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+            drawTextRect(
+                hdc,
+                RECT {card.left + 12, card.top + 28, card.right - 12, card.top + 44},
                 widen(std::string(definition.label)) + L" | q rec " + formatNumber(q_limit_pa / 1000.0, 0) + L" kPa",
-                RGB(148, 163, 184));
-            drawLine(hdc, card.left + 12, card.top + 68, L"SF " + formatNumber(safety_factor, 2) + L"  |  " + role, risk_color(deform_factor));
+                RGB(148, 163, 184),
+                DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+            drawTextRect(
+                hdc,
+                RECT {card.left + 12, card.top + 74, card.right - 12, card.bottom - 8},
+                L"SF " + formatNumber(safety_factor, 2) + L" | " + role,
+                risk_color(deform_factor),
+                DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
         };
 
-        RECT telemetry_box {part_panel.left + 12, part_panel.top + 12, part_panel.right - 12, part_panel.top + 222};
-        fillRect(hdc, telemetry_box, RGB(16, 27, 45));
-        strokeRect(hdc, telemetry_box, RGB(51, 65, 85));
+        RECT telemetry_box {part_panel.left + 12, part_panel.top + 42, part_panel.right - 12, part_panel.top + 306};
+        fillRoundedRect(hdc, telemetry_box, RGB(16, 27, 45), RGB(51, 65, 85), 14);
 
         int ty = telemetry_box.top + 12;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"Telemetry", RGB(248, 250, 252));
-        ty += 28;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"Time          " + formatNumber(state.snapshot.time_s, 2) + L" s");
-        ty += 22;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"Altitude      " + formatNumber(state.snapshot.state.position_m.z, 1) + L" m");
-        ty += 22;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"Vertical V    " + formatNumber(state.snapshot.state.velocity_mps.z, 1) + L" m/s");
-        ty += 22;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"Air Speed     " + formatNumber(state.snapshot.relative_air_speed_mps, 1) + L" m/s");
-        ty += 22;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"Mach          " + formatNumber(state.snapshot.mach_number, 2));
-        ty += 22;
-        drawLine(
-            hdc,
-            telemetry_box.left + 12,
-            ty,
-            L"rho / Ps      " + formatNumber(state.snapshot.air_density_kgpm3, 3) + L" / " + formatNumber(state.snapshot.static_pressure_pa, 0));
-        ty += 22;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"AoA           " + formatNumber(state.snapshot.angle_of_attack_deg, 2) + L" deg");
-        ty += 22;
-        drawLine(
-            hdc,
-            telemetry_box.left + 12,
-            ty,
-            L"q / P0        " + formatNumber(state.snapshot.dynamic_pressure_pa, 0) + L" / " + formatNumber(state.snapshot.total_pressure_pa, 0));
-        ty += 22;
-        drawLine(
-            hdc,
-            telemetry_box.left + 12,
-            ty,
-            L"a / Re body   " + formatNumber(state.snapshot.speed_of_sound_mps, 1) + L" / " + formatNumber(reynoldsNumber(state.snapshot, std::max(state.geometry.body_length_m, 0.1)), 0));
-        ty += 22;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"CFD Lines      " + std::to_wstring(airflow_line_count), RGB(226, 232, 240));
-        ty += 22;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"Peak Surface   " + formatNumber(peak_surface_pressure_kpa, 1) + L" kPa", RGB(248, 250, 252));
-        ty += 22;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"q Rec Struct  " + formatNumber(cachedRecommendedMaxDynamicPressurePa(state.geometry) / 1000.0, 1) + L" kPa", RGB(226, 232, 240));
-        ty += 22;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"Apogee        " + formatNumber(state.snapshot.max_altitude_m, 1) + L" m");
-        ty += 22;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"CG / CP       " + formatNumber(state.snapshot.cg_from_nose_m, 2) + L" / " + formatNumber(state.snapshot.cp_from_nose_m, 2) + L" m", RGB(226, 232, 240));
-        ty += 22;
-        drawLine(hdc, telemetry_box.left + 12, ty, L"Static Margin " + formatNumber(state.snapshot.static_margin_calibers, 2) + L" cal", RGB(226, 232, 240));
+        drawTextRect(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + 18}, L"Telemetry", title, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+        ty += 26;
+        const int row_height = 20;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"Time", formatNumber(state.snapshot.time_s, 2) + L" s");
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"Altitude", formatNumber(state.snapshot.state.position_m.z, 1) + L" m");
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"Vertical V", formatNumber(state.snapshot.state.velocity_mps.z, 1) + L" m/s");
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"Air Speed", formatNumber(state.snapshot.relative_air_speed_mps, 1) + L" m/s", RGB(56, 189, 248));
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"Mach", formatNumber(state.snapshot.mach_number, 2));
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"rho / Ps", formatNumber(state.snapshot.air_density_kgpm3, 3) + L" / " + formatNumber(state.snapshot.static_pressure_pa, 0));
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"AoA", formatNumber(state.snapshot.angle_of_attack_deg, 2) + L" deg", RGB(168, 85, 247));
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"q / P0", formatNumber(state.snapshot.dynamic_pressure_pa, 0) + L" / " + formatNumber(state.snapshot.total_pressure_pa, 0), RGB(249, 115, 22));
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"a / Re", formatNumber(state.snapshot.speed_of_sound_mps, 1) + L" / " + formatNumber(reynoldsNumber(state.snapshot, std::max(state.geometry.body_length_m, 0.1)), 0));
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"CFD Lines", std::to_wstring(airflow_line_count));
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"Peak Surf", formatNumber(peak_surface_pressure_kpa, 1) + L" kPa");
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"q Struct", formatNumber(cachedRecommendedMaxDynamicPressurePa(state.geometry) / 1000.0, 1) + L" kPa");
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"Apogee", formatNumber(state.snapshot.max_altitude_m, 1) + L" m");
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"CG / CP", formatNumber(state.snapshot.cg_from_nose_m, 2) + L" / " + formatNumber(state.snapshot.cp_from_nose_m, 2) + L" m");
+        ty += row_height + 4;
+        drawKeyValueRow(hdc, RECT {telemetry_box.left + 12, ty, telemetry_box.right - 12, ty + row_height}, L"Static M", formatNumber(state.snapshot.static_margin_calibers, 2) + L" cal");
 
-        draw_part_card(part_panel.top + 236, L"Nose Cone", ComponentType::NoseCone, state.geometry.nose_material, nose_factor, nose_deform, L"Stagnation and forebody pressure rise.");
-        draw_part_card(part_panel.top + 324, L"Body Tube", ComponentType::BodyTube, state.geometry.body_material, body_factor, body_deform, L"Distributed skin drag and shell bending.");
-        draw_part_card(part_panel.top + 412, L"Transition", ComponentType::Transition, state.geometry.transition_material, transition_factor, transition_deform, L"Tail pressure recovery and aft load.");
-        draw_part_card(part_panel.top + 500, L"Fin Set", ComponentType::FinSet, state.geometry.fin_material, fin_factor, fin_deform, L"AoA-driven lift, flutter and bending risk.");
-        draw_part_card(part_panel.top + 588, L"Payload", ComponentType::Payload, state.geometry.payload_material, payload_factor, payload_deform, L"Fore volume affects local pressure balance.");
-        draw_part_card(part_panel.top + 676, L"Motor Mount", ComponentType::MotorMount, state.geometry.body_material, motor_factor, motor_deform, L"Wake, base drag and tail structural stress.");
+        const int card_start_y = telemetry_box.bottom + 12;
+        const int card_step = 94;
+        draw_part_card(card_start_y + card_step * 0, L"Nose Cone", ComponentType::NoseCone, state.geometry.nose_material, nose_factor, nose_deform, L"Stagnation and forebody pressure rise.");
+        draw_part_card(card_start_y + card_step * 1, L"Body Tube", ComponentType::BodyTube, state.geometry.body_material, body_factor, body_deform, L"Distributed skin drag and shell bending.");
+        draw_part_card(card_start_y + card_step * 2, L"Transition", ComponentType::Transition, state.geometry.transition_material, transition_factor, transition_deform, L"Tail pressure recovery and aft load.");
+        draw_part_card(card_start_y + card_step * 3, L"Fin Set", ComponentType::FinSet, state.geometry.fin_material, fin_factor, fin_deform, L"AoA-driven lift, flutter and bending risk.");
+        draw_part_card(card_start_y + card_step * 4, L"Payload", ComponentType::Payload, state.geometry.payload_material, payload_factor, payload_deform, L"Fore volume affects local pressure balance.");
+        draw_part_card(card_start_y + card_step * 5, L"Motor Mount", ComponentType::MotorMount, state.geometry.body_material, motor_factor, motor_deform, L"Wake, base drag and tail structural stress.");
     }
 
     [[nodiscard]] std::wstring formatNumber(double value, int precision) const {

@@ -93,6 +93,8 @@ GpuMemorySnapshot queryGpuMemorySnapshot() noexcept {
 std::string buildConsoleText(const DebugTelemetrySnapshot& snapshot) {
     std::array<char, 8192> buffer {};
     const auto& geometry_cache = snapshot.simulation_cache.geometry;
+    const auto& aerodynamics_cache = snapshot.aerodynamics_cache;
+    const auto& cfd_cache = snapshot.cfd_cache;
     const auto& atmosphere_cache = snapshot.environment_cache.atmosphere;
     const auto& wind_cache = snapshot.environment_cache.wind;
 
@@ -117,6 +119,8 @@ std::string buildConsoleText(const DebugTelemetrySnapshot& snapshot) {
         "rocket@workstation> gpu.vram.shared..... %6.0f / %6.0f MB\n"
         "\n"
         "rocket@workstation> cache.geometry...... L1=%zu L2=%zu/%zu MISS=%zu HIT=%5.1f%% WR=%zu\n"
+        "rocket@workstation> cache.aero.......... L1=%zu L2=%zu/%zu MISS=%zu HIT=%5.1f%% WR=%zu\n"
+        "rocket@workstation> cache.cfd........... L1=%zu L2=%zu/%zu MISS=%zu HIT=%5.1f%% WR=%zu\n"
         "rocket@workstation> cache.atmosphere.... L1=%zu L2=%zu/%zu MISS=%zu HIT=%5.1f%% WR=%zu\n"
         "rocket@workstation> cache.wind.......... L1=%zu L2=%zu/%zu MISS=%zu HIT=%5.1f%% WR=%zu\n"
         "\n"
@@ -150,6 +154,18 @@ std::string buildConsoleText(const DebugTelemetrySnapshot& snapshot) {
         geometry_cache.misses,
         cacheHitRatePercent(geometry_cache),
         geometry_cache.writes,
+        aerodynamics_cache.l1_hits,
+        aerodynamics_cache.l2_valid_entries,
+        aerodynamics_cache.l2_capacity,
+        aerodynamics_cache.misses,
+        cacheHitRatePercent(aerodynamics_cache),
+        aerodynamics_cache.writes,
+        cfd_cache.l1_hits,
+        cfd_cache.l2_valid_entries,
+        cfd_cache.l2_capacity,
+        cfd_cache.misses,
+        cacheHitRatePercent(cfd_cache),
+        cfd_cache.writes,
         atmosphere_cache.l1_hits,
         atmosphere_cache.l2_valid_entries,
         atmosphere_cache.l2_capacity,
@@ -192,6 +208,8 @@ DebugTelemetrySnapshot DebugTelemetryCollector::capture(
     telemetry.snapshot = snapshot;
     telemetry.frame_time_ms = static_cast<double>(frame_time_s) * 1000.0;
     telemetry.fps = frame_time_s > 0.0f ? 1.0 / static_cast<double>(frame_time_s) : 0.0;
+    telemetry.aerodynamics_cache = aerodynamicsCacheStats();
+    telemetry.cfd_cache = cfdCacheStats();
     telemetry.simulation_cache = simulationCacheStats();
     telemetry.environment_cache = environment.cacheStats();
 

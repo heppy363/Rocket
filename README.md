@@ -16,7 +16,7 @@ Today the project already includes:
 - direct mesh editing with `Vertex`, `Edge`, and `Face` selection
 - first topology tools: `Extrude Face`, `Bevel Face`, `Loop Cut Edge`
 - 6-DOF style runtime state with variable mass, attitude, angular velocity, and RK4 integration
-- software `L1/L2` caches in the core for repeated atmosphere and vehicle-derived calculations
+- software `L1/L2` caches in the core for repeated atmosphere, aerodynamic geometry, CFD geometry, and vehicle-derived calculations
 - clustered motors with asymmetric failure support and thrust moment generation
 - atmosphere, wind-relative velocity, Mach, dynamic pressure, and recovery drag
 - material-aware dry mass, inertia, damping, and recommended structural `q` limits
@@ -55,6 +55,7 @@ Built by `CMake` today:
 - live fetch of surface weather from `Open-Meteo`
 - live fetch path for `OpenWeatherMap` with `OPENWEATHERMAP_API_KEY`
 - live telemetry for altitude, velocity, Mach, AoA, dynamic pressure, CG/CP, and static margin
+- in-app debug terminal with live cache hit metrics for geometry, aero, CFD, atmosphere, and wind
 
 ### Wind Tunnel / Aero Diagnostics
 
