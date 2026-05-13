@@ -2,7 +2,6 @@
 # Ignora qualsiasi cartella di build o file generato da CMake
 build*/
 **/build*/
-build-slint/
 CMakeFiles/
 **/CMakeFiles/
 cmake-build-*/

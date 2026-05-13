@@ -1,6 +1,6 @@
 # GUI & UX Specification - Current Direction
 
-Ultimo aggiornamento: `2026-05-12`
+Ultimo aggiornamento: `2026-05-13`
 
 ## Purpose
 
@@ -16,8 +16,6 @@ The current primary interface is:
 - `src/app/RocketAppUiCommon.inl`
 - `src/app/RocketAppUiModeling.inl`
 - `src/app/RocketAppUiSimulation.inl`
-
-The Slint files still present in the repository are reference/prototype assets and are not the active UI path.
 
 ## Product Shape
 
@@ -149,7 +147,6 @@ Use these names consistently in the docs and UI:
 
 Avoid describing the current app as:
 
-- Slint-first
 - web-like
 - multi-window simulation suite
 

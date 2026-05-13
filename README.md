@@ -30,13 +30,6 @@ Built by `CMake` today:
 - `rocket_sim` executable
 - dependencies vendored in `external/raylib` and `external/raylib-cpp`
 
-Not part of the current build:
-
-- `src/RocketSlintApp.cpp`
-- `ui/rocket_lab.slint`
-
-Those files remain in the repository as UI prototype/reference material, but the active executable path is the `raylib` application.
-
 ## Main Features
 
 ### Modeling
@@ -120,7 +113,6 @@ include/rocket/   Public headers for physics, vehicle, mesh, and app entrypoint
 src/              Application, simulation core, mesh generation, monitor window
 src/app/          Internal UI/state/interaction modules used by the raylib frontend
 external/         Vendored dependencies
-ui/               Slint prototype assets not used by the active build
 ```
 
 ## Documentation Map
@@ -142,7 +134,6 @@ ui/               Slint prototype assets not used by the active build
 - the CFD layer is diagnostic and heuristic, not a full volumetric solver
 - the particle CFD neighborhood model is improved but still approximate, not a real Navier-Stokes solver
 - the `L1/L2` acceleration is a software cache layer in the simulation core, not direct control of hardware CPU caches
-- the Slint frontend in the repository is not the active UI path
 
 ## Contributing
 

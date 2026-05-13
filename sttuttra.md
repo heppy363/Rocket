@@ -1,6 +1,6 @@
 # Struttura Del Progetto
 
-Ultimo aggiornamento: `2026-05-12`
+Ultimo aggiornamento: `2026-05-13`
 
 Questo file descrive la struttura reale del repository nello stato attuale.
 
@@ -92,13 +92,6 @@ Nota:
 - questi `.inl` sono parte della build attiva
 - restano un passaggio intermedio di refactor, non la forma finale desiderata
 
-## Prototype / Reference Assets
-
-- `src/RocketSlintApp.cpp`: prototipo frontend non incluso nella build attuale.
-- `ui/rocket_lab.slint`: UI reference non usata dall'eseguibile corrente.
-
-Questi file vanno trattati come materiale di riferimento, non come descrizione del comportamento reale dell'app attuale.
-
 ## External Dependencies
 
 - `external/raylib/`: libreria grafica vendorizzata.
@@ -107,4 +100,3 @@ Questi file vanno trattati come materiale di riferimento, non come descrizione d
 ## Output Directories
 
 - `build/`: output CMake principale.
-- `build-slint/`: residuo/prototipo di una build alternativa, non la build primaria corrente.

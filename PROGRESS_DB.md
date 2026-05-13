@@ -1,6 +1,6 @@
 # Context & Progress Database
 
-Ultimo aggiornamento: `2026-05-12`
+Ultimo aggiornamento: `2026-05-13`
 
 ## Executive Summary
 
@@ -11,7 +11,6 @@ Current reality:
 - the active executable is `rocket_sim`
 - the primary UI is the 3D workspace in `src/RocketApp.cpp`
 - procedural modeling, simulation, and aero diagnostics are all wired together
-- the Slint UI branch remains in the tree as reference/prototype, not as the active build
 
 ## Module Status
 
@@ -21,8 +20,6 @@ Current reality:
 - `src/app/*.inl`: implemented and actively used by the main app
 - `src/app/RocketAppUiTrajectory.inl`: extracted from common UI helpers to keep files bounded and cleaner
 - `SimulationMonitor.cpp`: implemented; external monitor available on Windows
-- `RocketSlintApp.cpp`: present but not compiled in current `CMake`
-- `ui/rocket_lab.slint`: reference/prototype only
 
 ### Modeling
 
@@ -128,7 +125,7 @@ Current reality:
 
 ## Architectural Decisions Locked In
 
-- the primary app path is `raylib`, not Slint
+- the primary app path is `raylib`
 - `main.cpp` must remain a minimal bootstrap
 - the physics core stays reusable and separated from the UI shell
 - performance optimizations should prefer deterministic software caches before more invasive approximation layers
@@ -140,7 +137,6 @@ Current reality:
 - the `src/app/*.inl` split is better than the old monolith, but still transitional
 - the new `L1/L2` cache layer is exact-keyed, so it avoids drift but does not yet exploit approximate reuse across nearby states
 - topology edits are serialized, but a full procedural rebuild can still replace local edits
-- some documentation previously described Slint as primary even though the build no longer does
 - the CFD naming can suggest higher fidelity than the current heuristic model actually provides
 
 ## Next High-Value Moves
