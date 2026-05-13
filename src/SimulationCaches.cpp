@@ -1,5 +1,6 @@
 #include "rocket/SimulationCaches.hpp"
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -74,6 +75,9 @@ struct GeometryCache {
     GeometryCacheEntry l1 {};
     std::array<GeometryCacheEntry, l2_cache_capacity> l2 {};
     std::size_t next_l2_slot {};
+    CacheUsageStats stats {
+        .l2_capacity = l2_cache_capacity
+    };
 };
 
 thread_local GeometryCache geometry_cache;
@@ -95,6 +99,8 @@ const CachedVehicleGeometryAnalysis& computeAndStore(
     };
     cache.l2[cache.next_l2_slot] = cache.l1;
     cache.next_l2_slot = (cache.next_l2_slot + 1U) % cache.l2.size();
+    ++cache.stats.misses;
+    ++cache.stats.writes;
     return cache.l1.analysis;
 }
 
@@ -104,12 +110,14 @@ const CachedVehicleGeometryAnalysis& cachedVehicleGeometryAnalysis(
     const VehicleGeometry& geometry) noexcept {
     const std::uint64_t fingerprint = geometryFingerprint(geometry);
     if (geometry_cache.l1.valid && geometry_cache.l1.fingerprint == fingerprint) {
+        ++geometry_cache.stats.l1_hits;
         return geometry_cache.l1.analysis;
     }
 
     for (const auto& entry : geometry_cache.l2) {
         if (entry.valid && entry.fingerprint == fingerprint) {
             geometry_cache.l1 = entry;
+            ++geometry_cache.stats.l2_hits;
             return geometry_cache.l1.analysis;
         }
     }
@@ -130,6 +138,21 @@ StructuralMaterialAssessment cachedStructuralMaterialAssessment(
 double cachedRecommendedMaxDynamicPressurePa(
     const VehicleGeometry& geometry) noexcept {
     return cachedVehicleGeometryAnalysis(geometry).recommended_max_dynamic_pressure_pa;
+}
+
+SimulationCacheStats simulationCacheStats() noexcept {
+    const auto valid_entries = static_cast<std::size_t>(std::count_if(
+        geometry_cache.l2.begin(),
+        geometry_cache.l2.end(),
+        [](const GeometryCacheEntry& entry) {
+            return entry.valid;
+        }));
+
+    CacheUsageStats geometry_stats = geometry_cache.stats;
+    geometry_stats.l2_valid_entries = valid_entries;
+    return SimulationCacheStats {
+        .geometry = geometry_stats
+    };
 }
 
 }  // namespace rocket

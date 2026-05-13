@@ -228,6 +228,7 @@ struct LayoutState {
     FloatingWindowState sim_timeline {::Rectangle {360.0f, 692.0f, 652.0f, 128.0f}};
     FloatingWindowState sim_scenario {::Rectangle {1192.0f, 84.0f, 368.0f, 700.0f}};
     FloatingWindowState sim_keyframe {::Rectangle {20.0f, 648.0f, 316.0f, 296.0f}};
+    FloatingWindowState debug_terminal {::Rectangle {340.0f, 96.0f, 820.0f, 360.0f}};
 };
 
 struct AppState {
@@ -252,6 +253,7 @@ struct AppState {
     bool show_flight_markers {true};
     bool show_cfd_pressure_overlay {true};
     bool show_wind_tunnel_panel {true};
+    bool show_debug_terminal {true};
     ComponentSelection wind_tunnel_focus {ComponentSelection::NoseCone};
     double reference_board_scale_m {2.6};
     double reference_board_offset_m {};
@@ -280,6 +282,7 @@ struct AppState {
     bool request_project_load {};
     bool request_project_export {};
     bool request_simulation_window_toggle {};
+    bool request_debug_terminal_toggle {};
     bool show_project_workflow_panel {true};
     std::filesystem::path current_project_path {"projects/rocket_lab_current.rlab"};
     std::filesystem::path current_report_path {"exports/rocket_lab_report.txt"};

@@ -16,6 +16,7 @@
 #include "rocket/Aerodynamics.hpp"
 #include "rocket/CfdModule.hpp"
 #include "rocket/DesignLibrary.hpp"
+#include "rocket/DebugTelemetry.hpp"
 #include "rocket/Forces.hpp"
 #include "rocket/MeshGenerator.hpp"
 #include "rocket/NativeFileDialog.hpp"
@@ -90,6 +91,7 @@ int rocket::runRocketLabApp() {
     SimulationRuntime simulation_runtime;
     MotorEditorState motor_editor;
     SimulationMonitor simulation_monitor;
+    DebugTelemetryCollector debug_telemetry;
     motor_editor.motor_count = 2;
     motor_editor.max_thrust_n = 180.0;
     motor_editor.burn_time_s = 2.4;
@@ -116,6 +118,7 @@ int rocket::runRocketLabApp() {
 
     while (!window.ShouldClose()) {
         const bool f3_pressed = IsKeyPressed(KEY_F3);
+        const bool f4_pressed = IsKeyPressed(KEY_F4);
 
         if (IsKeyPressed(KEY_F1)) {
             app_state.workspace = Workspace::Modeling;
@@ -132,6 +135,10 @@ int rocket::runRocketLabApp() {
             }
         }
         app_state.request_simulation_window_toggle = false;
+        if (f4_pressed || app_state.request_debug_terminal_toggle) {
+            app_state.show_debug_terminal = !app_state.show_debug_terminal;
+        }
+        app_state.request_debug_terminal_toggle = false;
         if (app_state.workspace == Workspace::Modeling && IsKeyPressed(KEY_TAB)) {
             app_state.camera_orbit = !app_state.camera_orbit;
         }
@@ -232,6 +239,8 @@ int rocket::runRocketLabApp() {
             cfd_frame.rendered_particle_count);
         const rocket::SimulationSnapshot& active_snapshot =
             app_state.workspace == Workspace::Modeling ? modeling_snapshot : simulation_snapshot;
+        const rocket::DebugTelemetrySnapshot debug_snapshot =
+            debug_telemetry.capture(environment, active_snapshot, frame_time_s);
         mesh_generator.setPressureOverlay(
             cfd_frame.component_pressure_pa,
             std::max(active_snapshot.dynamic_pressure_pa, active_snapshot.recommended_max_dynamic_pressure_pa),
@@ -452,7 +461,8 @@ int rocket::runRocketLabApp() {
             simulation_runtime,
             environment,
             modeling_snapshot,
-            simulation_snapshot);
+            simulation_snapshot,
+            debug_snapshot);
         rlImGuiEnd();
 
         DrawFPS(GetScreenWidth() - 100, 18);

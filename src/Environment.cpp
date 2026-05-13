@@ -78,14 +78,38 @@ Vector3 Environment::windVelocityWorldMps(double altitude_m, double time_s) cons
     return windSample(altitude_m, time_s).velocity_world_mps;
 }
 
+EnvironmentCacheStats Environment::cacheStats() const noexcept {
+    const auto count_valid = [](const auto& entries) {
+        return static_cast<std::size_t>(std::count_if(
+            entries.begin(),
+            entries.end(),
+            [](const auto& entry) {
+                return entry.valid;
+            }));
+    };
+
+    EnvironmentCacheUsageStats atmosphere_stats = atmosphere_cache_stats_;
+    atmosphere_stats.l2_valid_entries = count_valid(atmosphere_l2_);
+
+    EnvironmentCacheUsageStats wind_stats = wind_cache_stats_;
+    wind_stats.l2_valid_entries = count_valid(wind_l2_);
+
+    return EnvironmentCacheStats {
+        .atmosphere = atmosphere_stats,
+        .wind = wind_stats
+    };
+}
+
 const Environment::AtmosphereCacheEntry& Environment::atmosphereSample(double altitude_m) const noexcept {
     if (atmosphere_l1_.valid && atmosphere_l1_.altitude_m == altitude_m) {
+        ++atmosphere_cache_stats_.l1_hits;
         return atmosphere_l1_;
     }
 
     for (const auto& cached : atmosphere_l2_) {
         if (cached.valid && cached.altitude_m == altitude_m) {
             atmosphere_l1_ = cached;
+            ++atmosphere_cache_stats_.l2_hits;
             return atmosphere_l1_;
         }
     }
@@ -131,17 +155,21 @@ const Environment::AtmosphereCacheEntry& Environment::atmosphereSample(double al
     };
     atmosphere_l2_[atmosphere_l2_next_slot_] = atmosphere_l1_;
     atmosphere_l2_next_slot_ = (atmosphere_l2_next_slot_ + 1U) % atmosphere_l2_.size();
+    ++atmosphere_cache_stats_.misses;
+    ++atmosphere_cache_stats_.writes;
     return atmosphere_l1_;
 }
 
 const Environment::WindCacheEntry& Environment::windSample(double altitude_m, double time_s) const noexcept {
     if (wind_l1_.valid && wind_l1_.altitude_m == altitude_m && wind_l1_.time_s == time_s) {
+        ++wind_cache_stats_.l1_hits;
         return wind_l1_;
     }
 
     for (const auto& cached : wind_l2_) {
         if (cached.valid && cached.altitude_m == altitude_m && cached.time_s == time_s) {
             wind_l1_ = cached;
+            ++wind_cache_stats_.l2_hits;
             return wind_l1_;
         }
     }
@@ -165,6 +193,8 @@ const Environment::WindCacheEntry& Environment::windSample(double altitude_m, do
     };
     wind_l2_[wind_l2_next_slot_] = wind_l1_;
     wind_l2_next_slot_ = (wind_l2_next_slot_ + 1U) % wind_l2_.size();
+    ++wind_cache_stats_.misses;
+    ++wind_cache_stats_.writes;
     return wind_l1_;
 }
 
@@ -175,6 +205,8 @@ void Environment::invalidateCaches() noexcept {
     wind_l2_.fill({});
     atmosphere_l2_next_slot_ = 0;
     wind_l2_next_slot_ = 0;
+    atmosphere_cache_stats_ = EnvironmentCacheUsageStats {.l2_capacity = 16};
+    wind_cache_stats_ = EnvironmentCacheUsageStats {.l2_capacity = 16};
 }
 
 std::string Environment::weatherApiQueryUrl() const {

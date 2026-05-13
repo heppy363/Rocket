@@ -554,6 +554,10 @@ void drawTopBarImGui(AppState& app_state, SimulationRuntime& runtime) {
     if (ImGui::Button(app_state.show_simulation_window ? "F3 Monitor ON" : "F3 Monitor OFF", ImVec2(140.0f, 30.0f))) {
         app_state.request_simulation_window_toggle = true;
     }
+    ImGui::SameLine();
+    if (ImGui::Button(app_state.show_debug_terminal ? "F4 Debug ON" : "F4 Debug OFF", ImVec2(140.0f, 30.0f))) {
+        app_state.request_debug_terminal_toggle = true;
+    }
     if (app_state.workspace == Workspace::Simulation) {
         if (ImGui::Button(
                 app_state.show_wind_tunnel_panel ? "Wind Tunnel ON" : "Wind Tunnel OFF",
@@ -564,6 +568,36 @@ void drawTopBarImGui(AppState& app_state, SimulationRuntime& runtime) {
     ImGui::TextDisabled("%s", app_state.workspace == Workspace::Modeling ? "CAD-like modeling focus" : "Flight control and diagnostics focus");
     ImGui::TextDisabled("Project: %s", app_state.current_project_path.string().c_str());
     ImGui::Columns(1);
+    ImGui::End();
+}
+
+void drawDebugTerminalImGui(FloatingWindowState& state, const rocket::DebugTelemetrySnapshot& telemetry) {
+    primeWindowRect(state.bounds);
+    ImGui::Begin("Debug Terminal", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
+    syncWindowRect(state);
+
+    ImGui::TextWrapped("Console live stile Windows per uso macchina, processo Rocket e cache runtime.");
+    if (ImGui::Button("Copy Snapshot", ImVec2(130.0f, 0.0f))) {
+        ImGui::SetClipboardText(telemetry.console_text.c_str());
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("F4 toggle  |  GPU: %s", telemetry.gpu_metrics_available ? telemetry.gpu_adapter_name.c_str() : "metriche non disponibili");
+    ImGui::Separator();
+
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.01f, 0.03f, 0.01f, 0.98f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.10f, 0.42f, 0.18f, 1.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 8.0f));
+    ImGui::BeginChild(
+        "debug-terminal-scroll",
+        ImVec2(0.0f, 0.0f),
+        ImGuiChildFlags_Borders,
+        ImGuiWindowFlags_HorizontalScrollbar);
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 1.0f, 0.60f, 1.0f));
+    ImGui::TextUnformatted(telemetry.console_text.c_str());
+    ImGui::PopStyleColor();
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor(2);
     ImGui::End();
 }
 
@@ -1132,9 +1166,13 @@ void renderDearImGuiUi(
     SimulationRuntime& runtime,
     rocket::Environment& environment,
     const rocket::SimulationSnapshot& modeling_snapshot,
-    const rocket::SimulationSnapshot& simulation_snapshot) {
+    const rocket::SimulationSnapshot& simulation_snapshot,
+    const rocket::DebugTelemetrySnapshot& debug_snapshot) {
     drawTopBarImGui(app_state, runtime);
     drawProjectPanelImGui(app_state);
+    if (app_state.show_debug_terminal) {
+        drawDebugTerminalImGui(app_state.layout.debug_terminal, debug_snapshot);
+    }
 
     if (app_state.workspace == Workspace::Modeling) {
         drawModelingSidebarImGui(app_state, vehicle, motor_editor, mesh_generator, runtime);

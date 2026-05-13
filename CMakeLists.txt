@@ -37,6 +37,7 @@ target_include_directories(rocket_core
 )
 
 add_executable(rocket_sim
+    src/DebugTelemetry.cpp
     external/imgui/imgui.cpp
     external/imgui/imgui_draw.cpp
     external/imgui/imgui_tables.cpp
@@ -63,7 +64,7 @@ target_link_libraries(rocket_sim
 )
 
 if (WIN32)
-    target_link_libraries(rocket_sim PRIVATE Shell32)
+    target_link_libraries(rocket_sim PRIVATE Shell32 Psapi Dxgi)
 endif()
 
 if (WIN32)

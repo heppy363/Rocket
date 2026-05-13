@@ -28,6 +28,20 @@ enum class WeatherDataSource {
     OpenWeatherMapReady
 };
 
+struct EnvironmentCacheUsageStats {
+    std::size_t l2_capacity {};
+    std::size_t l2_valid_entries {};
+    std::size_t l1_hits {};
+    std::size_t l2_hits {};
+    std::size_t misses {};
+    std::size_t writes {};
+};
+
+struct EnvironmentCacheStats {
+    EnvironmentCacheUsageStats atmosphere {};
+    EnvironmentCacheUsageStats wind {};
+};
+
 class Environment {
 public:
     [[nodiscard]] const LaunchSite& launchSite() const noexcept;
@@ -45,6 +59,7 @@ public:
     [[nodiscard]] double gravityMps2(double altitude_m) const noexcept;
     [[nodiscard]] Vector3 windVelocityWorldMps(double altitude_m, double time_s) const noexcept;
     [[nodiscard]] std::string weatherApiQueryUrl() const;
+    [[nodiscard]] EnvironmentCacheStats cacheStats() const noexcept;
 
 private:
     struct AtmosphereCacheEntry {
@@ -77,6 +92,12 @@ private:
     mutable std::array<WindCacheEntry, 16> wind_l2_ {};
     mutable std::size_t atmosphere_l2_next_slot_ {};
     mutable std::size_t wind_l2_next_slot_ {};
+    mutable EnvironmentCacheUsageStats atmosphere_cache_stats_ {
+        .l2_capacity = 16
+    };
+    mutable EnvironmentCacheUsageStats wind_cache_stats_ {
+        .l2_capacity = 16
+    };
 };
 
 }  // namespace rocket
