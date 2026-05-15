@@ -172,6 +172,12 @@ int rocket::runRocketLabApp() {
 
         if (simulation_active) {
             if (IsKeyPressed(KEY_SPACE)) {
+                if (simulation_runtime.paused) {
+                    simulation_runtime.keyframe_preview_active = false;
+                    simulation_runtime.keyframe_preview_index = -1;
+                    simulation_runtime.keyframe_preview_time_s = 0.0;
+                    rocket::clearScrubPreview(simulation_runtime);
+                }
                 simulation_runtime.paused = !simulation_runtime.paused;
             }
             if (IsKeyPressed(KEY_R)) {
@@ -210,6 +216,7 @@ int rocket::runRocketLabApp() {
         }
 
         const FlightState modeling_preview_state = buildModelingPreviewState(vehicle);
+        const FlightState live_simulation_state = simulation_runtime.state;
         const FlightState replay_or_live_state = rocket::currentRenderState(simulation_runtime);
         const double render_time_s = rocket::currentRenderTime(simulation_runtime);
         const FlightState& view_state =
@@ -218,6 +225,11 @@ int rocket::runRocketLabApp() {
         updateWorkspaceCamera(app_state, simulation_runtime, camera, view_state);
 
         const ForceResult modeling_force_result = computeForces(modeling_preview_state, vehicle, environment, 0.0);
+        const ForceResult live_simulation_force_result = computeForces(
+            live_simulation_state,
+            vehicle,
+            environment,
+            simulation_runtime.time_s);
         const ForceResult simulation_force_result = computeForces(view_state, vehicle, environment, render_time_s);
         app_state.cfd_field.update(
             view_state,
@@ -228,6 +240,15 @@ int rocket::runRocketLabApp() {
         const rocket::CfdFrameData& cfd_frame = app_state.cfd_field.frame();
         const rocket::SimulationSnapshot modeling_snapshot =
             buildSnapshot(modeling_preview_state, vehicle, modeling_force_result, environment, 0.0, 0.0);
+        const rocket::SimulationSnapshot live_simulation_snapshot = buildSnapshot(
+            live_simulation_state,
+            vehicle,
+            live_simulation_force_result,
+            environment,
+            simulation_runtime.time_s,
+            simulation_runtime.max_altitude_m,
+            cfd_frame.solver_particle_count,
+            cfd_frame.rendered_particle_count);
         const rocket::SimulationSnapshot simulation_snapshot = buildSnapshot(
             view_state,
             vehicle,
@@ -237,6 +258,26 @@ int rocket::runRocketLabApp() {
             simulation_runtime.max_altitude_m,
             cfd_frame.solver_particle_count,
             cfd_frame.rendered_particle_count);
+        rocket::SimulationSnapshot keyframe_snapshot = simulation_snapshot;
+        if (simulation_runtime.keyframe_preview_active && !simulation_runtime.trajectory_history.empty()) {
+            const FlightState keyframe_state = rocket::sampleTrajectoryState(
+                simulation_runtime.trajectory_history,
+                simulation_runtime.keyframe_preview_time_s);
+            const ForceResult keyframe_force_result = computeForces(
+                keyframe_state,
+                vehicle,
+                environment,
+                simulation_runtime.keyframe_preview_time_s);
+            keyframe_snapshot = buildSnapshot(
+                keyframe_state,
+                vehicle,
+                keyframe_force_result,
+                environment,
+                simulation_runtime.keyframe_preview_time_s,
+                simulation_runtime.max_altitude_m,
+                cfd_frame.solver_particle_count,
+                cfd_frame.rendered_particle_count);
+        }
         const rocket::SimulationSnapshot& active_snapshot =
             app_state.workspace == Workspace::Modeling ? modeling_snapshot : simulation_snapshot;
         const rocket::DebugTelemetrySnapshot debug_snapshot =
@@ -461,6 +502,8 @@ int rocket::runRocketLabApp() {
             simulation_runtime,
             environment,
             modeling_snapshot,
+            keyframe_snapshot,
+            live_simulation_snapshot,
             simulation_snapshot,
             debug_snapshot);
         rlImGuiEnd();

@@ -61,7 +61,27 @@ void updateReplayTimeline(
     }
 }
 
+void clearScrubPreview(SimulationRuntime& runtime) noexcept {
+    runtime.scrub_preview_active = false;
+    runtime.scrub_preview_time_s = 0.0;
+}
+
+void setScrubPreviewTime(
+    SimulationRuntime& runtime,
+    double time_s) noexcept {
+    const double end_time_s =
+        runtime.trajectory_history.empty() ? runtime.time_s : runtime.trajectory_history.back().time_s;
+    runtime.scrub_preview_active = true;
+    runtime.scrub_preview_time_s = std::clamp(time_s, 0.0, std::max(end_time_s, runtime.time_s));
+    runtime.replay_active = false;
+    runtime.replay_time_s = 0.0;
+    runtime.paused = true;
+}
+
 double currentRenderTime(const SimulationRuntime& runtime) noexcept {
+    if (runtime.scrub_preview_active) {
+        return runtime.scrub_preview_time_s;
+    }
     if (runtime.keyframe_preview_active) {
         return runtime.keyframe_preview_time_s;
     }
@@ -69,6 +89,9 @@ double currentRenderTime(const SimulationRuntime& runtime) noexcept {
 }
 
 FlightState currentRenderState(const SimulationRuntime& runtime) noexcept {
+    if (runtime.scrub_preview_active && !runtime.trajectory_history.empty()) {
+        return sampleTrajectoryState(runtime.trajectory_history, runtime.scrub_preview_time_s);
+    }
     if (runtime.keyframe_preview_active && !runtime.trajectory_history.empty()) {
         return sampleTrajectoryState(runtime.trajectory_history, runtime.keyframe_preview_time_s);
     }
@@ -101,6 +124,8 @@ void resetSimulationRuntime(
     runtime.keyframe_preview_active = false;
     runtime.keyframe_preview_index = -1;
     runtime.keyframe_preview_time_s = 0.0;
+    runtime.scrub_preview_active = false;
+    runtime.scrub_preview_time_s = 0.0;
     runtime.trajectory_history.clear();
     runtime.trajectory_history.push_back(TrajectorySample {
         .state = runtime.state,
@@ -162,6 +187,7 @@ std::expected<void, ValidationError> stepSimulationRuntime(
             runtime.impact_time_s = runtime.time_s;
             runtime.replay_active = true;
             runtime.replay_time_s = 0.0;
+            clearScrubPreview(runtime);
         }
     }
 

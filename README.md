@@ -21,7 +21,7 @@ Today the project already includes:
 - atmosphere, wind-relative velocity, Mach, dynamic pressure, and recovery drag
 - material-aware dry mass, inertia, damping, and recommended structural `q` limits
 - in-app CFD-inspired flow diagnostics plus a dedicated external `F3` wind-tunnel window on Windows
-- mission replay and keyframe review for `Launch`, `Burnout`, `Apogee`, and `Impact`
+- mission replay, keyframe review, and manual timeline scrub for `Launch`, `Burnout`, `Apogee`, and `Impact`
 
 ## What Is In Build
 
@@ -48,6 +48,7 @@ Built by `CMake` today:
 ### Simulation
 
 - launch/replay/reset controls
+- manual timeline scrub with direct comparison against the selected keyframe
 - fixed, follow, and free simulation camera
 - trajectory history and event markers
 - clustered motors with failure toggles

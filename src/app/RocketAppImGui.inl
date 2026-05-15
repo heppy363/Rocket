@@ -516,6 +516,10 @@ void drawTopBarImGui(AppState& app_state, SimulationRuntime& runtime) {
         if (ImGui::Button(runtime.replay_active ? "Stop Replay" : "Replay Route", ImVec2(120.0f, 28.0f))) {
             runtime.replay_active = !runtime.replay_active;
             runtime.replay_time_s = 0.0;
+            runtime.keyframe_preview_active = false;
+            runtime.keyframe_preview_index = -1;
+            runtime.keyframe_preview_time_s = 0.0;
+            rocket::clearScrubPreview(runtime);
         }
         ImGui::SameLine();
         ImGui::Checkbox("Markers", &app_state.show_flight_markers);
@@ -921,6 +925,12 @@ void drawSimulationScenarioImGui(
     syncWindowRect(app_state.layout.sim_scenario);
 
     if (ImGui::Button(runtime.paused ? "Avvia / Riprendi" : "Pausa", ImVec2(-1.0f, 0.0f))) {
+        if (runtime.paused) {
+            runtime.keyframe_preview_active = false;
+            runtime.keyframe_preview_index = -1;
+            runtime.keyframe_preview_time_s = 0.0;
+            rocket::clearScrubPreview(runtime);
+        }
         runtime.paused = !runtime.paused;
     }
     if (ImGui::Button("Reset missione", ImVec2(-1.0f, 0.0f))) {
@@ -929,6 +939,10 @@ void drawSimulationScenarioImGui(
     if (ImGui::Button(runtime.replay_active ? "Ferma replay rotta" : "Avvia replay rotta", ImVec2(-1.0f, 0.0f))) {
         runtime.replay_active = !runtime.replay_active;
         runtime.replay_time_s = 0.0;
+        runtime.keyframe_preview_active = false;
+        runtime.keyframe_preview_index = -1;
+        runtime.keyframe_preview_time_s = 0.0;
+        rocket::clearScrubPreview(runtime);
     }
 
     auto site = environment.launchSite();
@@ -1166,6 +1180,8 @@ void renderDearImGuiUi(
     SimulationRuntime& runtime,
     rocket::Environment& environment,
     const rocket::SimulationSnapshot& modeling_snapshot,
+    const rocket::SimulationSnapshot& keyframe_snapshot,
+    const rocket::SimulationSnapshot& live_simulation_snapshot,
     const rocket::SimulationSnapshot& simulation_snapshot,
     const rocket::DebugTelemetrySnapshot& debug_snapshot) {
     drawTopBarImGui(app_state, runtime);
@@ -1197,7 +1213,12 @@ void renderDearImGuiUi(
 
         if (runtime.keyframe_preview_active) {
             const ::Rectangle keyframe_bounds = beginOverlayHostWindow(app_state.layout.sim_keyframe, "Keyframe");
-            drawMissionKeyframePreview(keyframe_bounds, runtime, simulation_snapshot);
+            drawMissionKeyframePreview(
+                keyframe_bounds,
+                runtime,
+                keyframe_snapshot,
+                simulation_snapshot,
+                live_simulation_snapshot);
         }
     }
 }

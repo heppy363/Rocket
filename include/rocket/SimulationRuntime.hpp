@@ -33,6 +33,8 @@ struct SimulationRuntime {
     bool keyframe_preview_active {false};
     int keyframe_preview_index {-1};
     double keyframe_preview_time_s {};
+    bool scrub_preview_active {false};
+    double scrub_preview_time_s {};
 };
 
 }  // namespace rocket

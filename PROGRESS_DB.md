@@ -64,6 +64,7 @@ Current reality:
 - recovery drag and parachute deployment logic: implemented
 - per-component structural failure visualization during F2 simulation: implemented
 - key mission events and replay: implemented
+- manual timeline scrub with keyframe delta comparison: implemented
 - rail guidance / launch rod phase: not yet implemented
 - layered wind profile and dispersion map: not yet implemented
 
@@ -123,6 +124,7 @@ Current reality:
 - CFD diagnostics are informative, but still heuristic
 - pressure heatmap is now available on the 3D mesh, but it is driven by component-band pressure estimates rather than per-face CFD
 - weather sources are connected to live providers, but fetch is still manual and synchronous
+- mission review now supports manual scrub and keyframe-vs-live deltas, but historical plots are still missing
 
 ### Not Yet Productized
 
@@ -152,7 +154,6 @@ Current reality:
 
 ## Next High-Value Moves
 
-- connect live weather providers
 - move `src/app/*.inl` into stronger `.hpp/.cpp` modules
 - deepen topology editing beyond the current first operator set
 - continue refining CFD particle neighborhoods and pressure visualization fidelity

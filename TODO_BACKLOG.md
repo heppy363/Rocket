@@ -4,7 +4,7 @@ Ultimo aggiornamento: `2026-05-13`
 
 ## Highest Priority
 
-- [~] Collegare davvero i provider meteo al runtime con fetch HTTP reale e parsing risposta.
+- [x] Collegare davvero i provider meteo al runtime con fetch HTTP reale e parsing risposta.
 - [x] Rendere persistenti e serializzabili preset, geometria e topology edits.
 - [~] Portare i moduli `src/app/*.inl` verso coppie `.hpp/.cpp` piu pulite.
 - [ ] Migliorare il workflow mesh con gizmo piu chiari, selezione piu precisa e operazioni topologiche meno fragili.
@@ -20,9 +20,9 @@ Ultimo aggiornamento: `2026-05-13`
 
 ## Simulation
 
-- [~] Rifinire replay e review keyframe.
+- [x] Rifinire replay e review keyframe.
 - [x] Estendere il sistema di cache software `L1/L2` a piu sottosistemi hot-path con metriche di cache hit.
-- [ ] Aggiungere scrub manuale e confronto fra keyframe.
+- [x] Aggiungere scrub manuale e confronto fra keyframe.
 - [ ] Introdurre grafici storici per quota, Mach, `q`, `rho`, `P`, `P0`, `Re`.
 - [ ] Migliorare il profilo vento con shear multilayer.
 - [ ] Aggiungere fase di launch rail / rail guidance.

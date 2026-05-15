@@ -22,7 +22,9 @@ void drawSimulationTelemetry(const ::Rectangle& bounds, const rocket::Simulation
 void drawMissionKeyframePreview(
     const ::Rectangle& bounds,
     const SimulationRuntime& runtime,
-    const rocket::SimulationSnapshot& snapshot) {
+    const rocket::SimulationSnapshot& keyframe_snapshot,
+    const rocket::SimulationSnapshot& inspection_snapshot,
+    const rocket::SimulationSnapshot& live_snapshot) {
     drawPanel(bounds, "Analisi Keyframe");
 
     MissionKeyframe keyframe;
@@ -46,19 +48,45 @@ void drawMissionKeyframePreview(
         Color {15, 23, 42, 230},
         Color {100, 116, 139, 220});
 
-    drawMetricCard(Rectangle {bounds.x + 14.0f, bounds.y + 84.0f, 126.0f, 44.0f}, "Quota", std::format("{:.1f} m", snapshot.state.position_m.z), keyframe.accent);
-    drawMetricCard(Rectangle {bounds.x + 150.0f, bounds.y + 84.0f, 126.0f, 44.0f}, "Velocita aria", std::format("{:.1f} m/s", snapshot.relative_air_speed_mps), Color {56, 189, 248, 255});
-    drawMetricCard(Rectangle {bounds.x + 14.0f, bounds.y + 136.0f, 126.0f, 44.0f}, "Mach", std::format("{:.2f}", snapshot.mach_number), Color {168, 85, 247, 255});
-    drawMetricCard(Rectangle {bounds.x + 150.0f, bounds.y + 136.0f, 126.0f, 44.0f}, "AoA", std::format("{:.2f} deg", snapshot.angle_of_attack_deg), Color {249, 115, 22, 255});
+    drawMetricCard(Rectangle {bounds.x + 14.0f, bounds.y + 84.0f, 126.0f, 44.0f}, "Quota", std::format("{:.1f} m", keyframe_snapshot.state.position_m.z), keyframe.accent);
+    drawMetricCard(Rectangle {bounds.x + 150.0f, bounds.y + 84.0f, 126.0f, 44.0f}, "Velocita aria", std::format("{:.1f} m/s", keyframe_snapshot.relative_air_speed_mps), Color {56, 189, 248, 255});
+    drawMetricCard(Rectangle {bounds.x + 14.0f, bounds.y + 136.0f, 126.0f, 44.0f}, "Mach", std::format("{:.2f}", keyframe_snapshot.mach_number), Color {168, 85, 247, 255});
+    drawMetricCard(Rectangle {bounds.x + 150.0f, bounds.y + 136.0f, 126.0f, 44.0f}, "AoA", std::format("{:.2f} deg", keyframe_snapshot.angle_of_attack_deg), Color {249, 115, 22, 255});
 
-    DrawText(std::format("Pressione q   {:.0f} Pa", snapshot.dynamic_pressure_pa).c_str(), static_cast<int>(bounds.x) + 14, static_cast<int>(bounds.y) + 194, 14, Color {226, 232, 240, 255});
-    DrawText(std::format("P0 totale    {:.0f} Pa", snapshot.total_pressure_pa).c_str(), static_cast<int>(bounds.x) + 14, static_cast<int>(bounds.y) + 214, 14, Color {226, 232, 240, 255});
-    DrawText(std::format("Margine      {:.2f} cal", snapshot.static_margin_calibers).c_str(), static_cast<int>(bounds.x) + 14, static_cast<int>(bounds.y) + 234, 14, Color {226, 232, 240, 255});
-    DrawText(std::format("CG / CP      {:.2f} / {:.2f} m", snapshot.cg_from_nose_m, snapshot.cp_from_nose_m).c_str(), static_cast<int>(bounds.x) + 14, static_cast<int>(bounds.y) + 254, 14, Color {226, 232, 240, 255});
-    DrawText(std::format("q rec        {:.0f} kPa", snapshot.recommended_max_dynamic_pressure_pa / 1000.0).c_str(), static_cast<int>(bounds.x) + 14, static_cast<int>(bounds.y) + 274, 14, Color {226, 232, 240, 255});
+    DrawText(std::format("Pressione q   {:.0f} Pa", keyframe_snapshot.dynamic_pressure_pa).c_str(), static_cast<int>(bounds.x) + 14, static_cast<int>(bounds.y) + 194, 14, Color {226, 232, 240, 255});
+    DrawText(std::format("P0 totale    {:.0f} Pa", keyframe_snapshot.total_pressure_pa).c_str(), static_cast<int>(bounds.x) + 14, static_cast<int>(bounds.y) + 214, 14, Color {226, 232, 240, 255});
+    DrawText(std::format("Margine      {:.2f} cal", keyframe_snapshot.static_margin_calibers).c_str(), static_cast<int>(bounds.x) + 14, static_cast<int>(bounds.y) + 234, 14, Color {226, 232, 240, 255});
+    DrawText(std::format("CG / CP      {:.2f} / {:.2f} m", keyframe_snapshot.cg_from_nose_m, keyframe_snapshot.cp_from_nose_m).c_str(), static_cast<int>(bounds.x) + 14, static_cast<int>(bounds.y) + 254, 14, Color {226, 232, 240, 255});
+    DrawText(std::format("q rec        {:.0f} kPa", keyframe_snapshot.recommended_max_dynamic_pressure_pa / 1000.0).c_str(), static_cast<int>(bounds.x) + 14, static_cast<int>(bounds.y) + 274, 14, Color {226, 232, 240, 255});
+
+    const rocket::SimulationSnapshot& comparison_snapshot =
+        runtime.scrub_preview_active ? inspection_snapshot : live_snapshot;
+    const std::string compare_label =
+        runtime.scrub_preview_active ? "Confronto con scrub" : "Confronto con live";
+    const auto signed_delta = [](double value, int precision, const char* unit = "") {
+        if (precision <= 0) {
+            return std::format("{:+.0f}{}", value, unit);
+        }
+        if (precision == 1) {
+            return std::format("{:+.1f}{}", value, unit);
+        }
+        if (precision == 2) {
+            return std::format("{:+.2f}{}", value, unit);
+        }
+        return std::format("{:+.3f}{}", value, unit);
+    };
+    drawStatusChip(
+        Rectangle {bounds.x + 14.0f, bounds.y + 300.0f, 144.0f, 26.0f},
+        compare_label,
+        Color {17, 24, 39, 230},
+        keyframe.accent);
+    drawKeyValueLine(Rectangle {bounds.x + 14.0f, bounds.y + 332.0f, bounds.width - 28.0f, 18.0f}, "Delta quota", signed_delta(comparison_snapshot.state.position_m.z - keyframe_snapshot.state.position_m.z, 1, " m"));
+    drawKeyValueLine(Rectangle {bounds.x + 14.0f, bounds.y + 354.0f, bounds.width - 28.0f, 18.0f}, "Delta V aria", signed_delta(comparison_snapshot.relative_air_speed_mps - keyframe_snapshot.relative_air_speed_mps, 1, " m/s"));
+    drawKeyValueLine(Rectangle {bounds.x + 14.0f, bounds.y + 376.0f, bounds.width - 28.0f, 18.0f}, "Delta q", signed_delta(comparison_snapshot.dynamic_pressure_pa - keyframe_snapshot.dynamic_pressure_pa, 0, " Pa"));
+    drawKeyValueLine(Rectangle {bounds.x + 14.0f, bounds.y + 398.0f, bounds.width - 28.0f, 18.0f}, "Delta margine", signed_delta(comparison_snapshot.static_margin_calibers - keyframe_snapshot.static_margin_calibers, 2, " cal"));
     drawInlineHint(
-        Rectangle {bounds.x + 14.0f, bounds.y + bounds.height - 30.0f, bounds.width - 28.0f, 24.0f},
-        "Premi K di nuovo per passare al keyframe successivo. Dopo l'ultimo torni alla vista live.",
+        Rectangle {bounds.x + 14.0f, bounds.y + bounds.height - 42.0f, bounds.width - 28.0f, 36.0f},
+        runtime.scrub_preview_active ? "Trascina la timeline per confrontare questo keyframe con qualsiasi istante della missione." : "Premi K di nuovo per passare al keyframe successivo. Dopo l'ultimo torni alla vista live.",
         keyframe.accent);
 }
 
@@ -77,6 +105,12 @@ void drawSimulationScenario(
 
     const ::Rectangle play_button {bounds.x + 18.0f, bounds.y + 92.0f, bounds.width - 36.0f, 38.0f};
     if (drawButton(play_button, runtime.paused ? "Avvia / Riprendi" : "Pausa", !runtime.paused, Color {25, 165, 124, 224}, ButtonStyle::Contained)) {
+        if (runtime.paused) {
+            runtime.keyframe_preview_active = false;
+            runtime.keyframe_preview_index = -1;
+            runtime.keyframe_preview_time_s = 0.0;
+            rocket::clearScrubPreview(runtime);
+        }
         runtime.paused = !runtime.paused;
     }
 
@@ -89,6 +123,10 @@ void drawSimulationScenario(
     if (drawButton(replay_button, runtime.replay_active ? "Ferma replay rotta" : "Avvia replay rotta", runtime.replay_active, Color {84, 136, 199, 224}, runtime.replay_active ? ButtonStyle::Contained : ButtonStyle::Outlined)) {
         runtime.replay_active = !runtime.replay_active;
         runtime.replay_time_s = 0.0;
+        runtime.keyframe_preview_active = false;
+        runtime.keyframe_preview_index = -1;
+        runtime.keyframe_preview_time_s = 0.0;
+        rocket::clearScrubPreview(runtime);
     }
 
     const ::Rectangle marker_button {bounds.x + 18.0f, bounds.y + 224.0f, bounds.width - 36.0f, 34.0f};
@@ -250,10 +288,19 @@ void drawSimulationScenario(
         Color {148, 163, 184, 255});
 }
 
-void drawSimulationTimeline(const ::Rectangle& bounds, const SimulationRuntime& runtime, const rocket::VehicleModel& vehicle) {
+void drawSimulationTimeline(const ::Rectangle& bounds, SimulationRuntime& runtime, const rocket::VehicleModel& vehicle) {
     drawPanel(bounds, "Sequenza Missione");
     const double burn_time_s = 2.4;
-    const double normalized_progress = std::clamp(runtime.time_s / 12.0, 0.0, 1.0);
+    const double timeline_end_s = std::max(
+        {
+            12.0,
+            runtime.time_s,
+            runtime.trajectory_history.empty() ? 0.0 : runtime.trajectory_history.back().time_s,
+            runtime.burnout_time_s,
+            runtime.apogee_time_s,
+            runtime.impact_time_s
+        });
+    const double normalized_progress = std::clamp(runtime.time_s / timeline_end_s, 0.0, 1.0);
     const double burn_progress = std::clamp(runtime.time_s / burn_time_s, 0.0, 1.0);
 
     DrawText("Progressione volo", static_cast<int>(bounds.x) + 18, static_cast<int>(bounds.y) + 36, 13, Color {148, 163, 184, 255});
@@ -275,9 +322,62 @@ void drawSimulationTimeline(const ::Rectangle& bounds, const SimulationRuntime& 
         6,
         vehicle.cluster.isBurning(runtime.time_s) ? Color {249, 115, 22, 230} : Color {82, 82, 91, 230});
 
-    DrawText(std::format("Tempo missione {:.2f} s", runtime.time_s).c_str(), static_cast<int>(bounds.x) + 18, static_cast<int>(bounds.y) + 118, 16, Color {226, 232, 240, 255});
+    const ::Rectangle scrub_bar {bounds.x + 18.0f, bounds.y + 112.0f, bounds.width - 176.0f, 16.0f};
+    DrawRectangleRounded(scrub_bar, 0.45f, 8, Color {17, 24, 39, 250});
+    DrawRectangleRoundedLinesEx(scrub_bar, 0.45f, 8, 1.0f, Color {71, 85, 105, 220});
+
+    for (const auto& keyframe : buildMissionKeyframes(runtime)) {
+        const float marker_t =
+            timeline_end_s <= 1e-6 ? 0.0f : static_cast<float>(std::clamp(keyframe.time_s / timeline_end_s, 0.0, 1.0));
+        const float marker_x = scrub_bar.x + scrub_bar.width * marker_t;
+        DrawLineEx(
+            ::Vector2 {marker_x, scrub_bar.y - 4.0f},
+            ::Vector2 {marker_x, scrub_bar.y + scrub_bar.height + 4.0f},
+            1.4f,
+            keyframe.accent);
+    }
+
+    if (runtime.trajectory_history.size() > 1) {
+        const ::Vector2 mouse = GetMousePosition();
+        if (CheckCollisionPointRec(mouse, scrub_bar) &&
+            (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || IsMouseButtonDown(MOUSE_LEFT_BUTTON))) {
+            const double ratio =
+                std::clamp((mouse.x - scrub_bar.x) / std::max(scrub_bar.width, 1.0f), 0.0f, 1.0f);
+            rocket::setScrubPreviewTime(runtime, ratio * timeline_end_s);
+        }
+    }
+
+    const double inspection_time_s = rocket::currentRenderTime(runtime);
+    const float inspection_t =
+        timeline_end_s <= 1e-6 ? 0.0f : static_cast<float>(std::clamp(inspection_time_s / timeline_end_s, 0.0, 1.0));
+    const float inspection_x = scrub_bar.x + scrub_bar.width * inspection_t;
+    DrawCircleV(
+        ::Vector2 {inspection_x, scrub_bar.y + scrub_bar.height * 0.5f},
+        6.0f,
+        runtime.scrub_preview_active ? Color {244, 114, 182, 255}
+        : runtime.keyframe_preview_active ? Color {168, 85, 247, 255}
+        : runtime.replay_active ? Color {251, 191, 36, 255}
+                                : Color {125, 211, 252, 255});
+
+    const ::Rectangle live_button {bounds.x + bounds.width - 146.0f, bounds.y + 104.0f, 128.0f, 28.0f};
+    if (drawButton(
+            live_button,
+            runtime.scrub_preview_active ? "Torna live" : "Scrub pronto",
+            runtime.scrub_preview_active,
+            Color {236, 72, 153, 220},
+            runtime.scrub_preview_active ? ButtonStyle::Contained : ButtonStyle::Outlined) &&
+        runtime.scrub_preview_active) {
+        rocket::clearScrubPreview(runtime);
+    }
+
+    const char* inspection_mode =
+        runtime.scrub_preview_active ? "Scrub"
+        : runtime.keyframe_preview_active ? "Keyframe"
+        : runtime.replay_active ? "Replay"
+                                : "Live";
+    DrawText(std::format("Tempo missione {:.2f} s | Vista {} {:.2f} / {:.2f} s", runtime.time_s, inspection_mode, inspection_time_s, timeline_end_s).c_str(), static_cast<int>(bounds.x) + 18, static_cast<int>(bounds.y) + 138, 16, Color {226, 232, 240, 255});
     if (runtime.time_s < 0.01) {
-        DrawText("La timeline si popola quando la missione entra in volo.", static_cast<int>(bounds.x) + 230, static_cast<int>(bounds.y) + 118, 13, Color {148, 163, 184, 255});
+        DrawText("La timeline si popola quando la missione entra in volo.", static_cast<int>(bounds.x) + 230, static_cast<int>(bounds.y) + 138, 13, Color {148, 163, 184, 255});
     }
 }
 

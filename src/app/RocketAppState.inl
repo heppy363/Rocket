@@ -225,9 +225,9 @@ struct LayoutState {
     FloatingWindowState sim_events {::Rectangle {20.0f, 384.0f, 316.0f, 244.0f}};
     FloatingWindowState sim_wind_tunnel {::Rectangle {360.0f, 84.0f, 652.0f, 312.0f}};
     FloatingWindowState sim_overview {::Rectangle {360.0f, 420.0f, 652.0f, 248.0f}};
-    FloatingWindowState sim_timeline {::Rectangle {360.0f, 692.0f, 652.0f, 128.0f}};
+    FloatingWindowState sim_timeline {::Rectangle {360.0f, 672.0f, 652.0f, 170.0f}};
     FloatingWindowState sim_scenario {::Rectangle {1192.0f, 84.0f, 368.0f, 700.0f}};
-    FloatingWindowState sim_keyframe {::Rectangle {20.0f, 648.0f, 316.0f, 296.0f}};
+    FloatingWindowState sim_keyframe {::Rectangle {20.0f, 448.0f, 316.0f, 500.0f}};
     FloatingWindowState debug_terminal {::Rectangle {340.0f, 96.0f, 820.0f, 360.0f}};
 };
 
@@ -744,6 +744,7 @@ void cycleMissionKeyframePreview(SimulationRuntime& runtime) {
         runtime.keyframe_preview_active = false;
         runtime.keyframe_preview_index = -1;
         runtime.keyframe_preview_time_s = 0.0;
+        rocket::clearScrubPreview(runtime);
         return;
     }
 
@@ -751,6 +752,9 @@ void cycleMissionKeyframePreview(SimulationRuntime& runtime) {
         runtime.keyframe_preview_active = true;
         runtime.keyframe_preview_index = 0;
         runtime.keyframe_preview_time_s = keyframes.front().time_s;
+        runtime.replay_active = false;
+        runtime.replay_time_s = 0.0;
+        rocket::clearScrubPreview(runtime);
         runtime.paused = true;
         return;
     }
@@ -760,11 +764,15 @@ void cycleMissionKeyframePreview(SimulationRuntime& runtime) {
         runtime.keyframe_preview_active = false;
         runtime.keyframe_preview_index = -1;
         runtime.keyframe_preview_time_s = 0.0;
+        rocket::clearScrubPreview(runtime);
         return;
     }
 
     runtime.keyframe_preview_index = next_index;
     runtime.keyframe_preview_time_s = keyframes[static_cast<std::size_t>(next_index)].time_s;
+    runtime.replay_active = false;
+    runtime.replay_time_s = 0.0;
+    rocket::clearScrubPreview(runtime);
     runtime.paused = true;
 }
 

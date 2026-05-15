@@ -43,7 +43,7 @@ Percorso applicativo attivo:
 - `include/rocket/SimulationCore.hpp`: helper core per stato iniziale, snapshot e monitor state.
 - `include/rocket/SimulationCaches.hpp`: cache software `L1/L2` per analisi geometriche e derivati ripetuti.
 - `include/rocket/SimulationRuntime.hpp`: struttura dati runtime della missione.
-- `include/rocket/SimulationEngine.hpp`: stepping, replay e sampling del runtime.
+- `include/rocket/SimulationEngine.hpp`: stepping, replay, scrub timeline e sampling del runtime.
 - `include/rocket/Validation.hpp`: validazione esplicita con `std::expected`.
 - `include/rocket/WeatherProvider.hpp`: provider meteo live e fetch HTTP.
 - `include/rocket/MeshGenerator.hpp`: mesh procedurali, cache topologiche e editing base.

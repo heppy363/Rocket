@@ -24,6 +24,13 @@ void updateReplayTimeline(
     SimulationRuntime& runtime,
     double frame_time_s) noexcept;
 
+void clearScrubPreview(
+    SimulationRuntime& runtime) noexcept;
+
+void setScrubPreviewTime(
+    SimulationRuntime& runtime,
+    double time_s) noexcept;
+
 [[nodiscard]] double currentRenderTime(
     const SimulationRuntime& runtime) noexcept;
 
