@@ -9,6 +9,13 @@ namespace rocket {
 struct TrajectorySample {
     FlightState state {};
     double time_s {};
+    double altitude_m {};
+    double mach_number {};
+    double dynamic_pressure_pa {};
+    double air_density_kgpm3 {};
+    double static_pressure_pa {};
+    double total_pressure_pa {};
+    double reynolds_number {};
 };
 
 struct SimulationRuntime {

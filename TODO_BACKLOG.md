@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Ultimo aggiornamento: `2026-05-13`
+Ultimo aggiornamento: `2026-05-25`
 
 ## Highest Priority
 
@@ -23,7 +23,7 @@ Ultimo aggiornamento: `2026-05-13`
 - [x] Rifinire replay e review keyframe.
 - [x] Estendere il sistema di cache software `L1/L2` a piu sottosistemi hot-path con metriche di cache hit.
 - [x] Aggiungere scrub manuale e confronto fra keyframe.
-- [ ] Introdurre grafici storici per quota, Mach, `q`, `rho`, `P`, `P0`, `Re`.
+- [x] Introdurre grafici storici per quota, Mach, `q`, `rho`, `P`, `P0`, `Re`.
 - [ ] Migliorare il profilo vento con shear multilayer.
 - [ ] Aggiungere fase di launch rail / rail guidance.
 - [ ] Aggiungere mappe di dispersione e landing analysis.

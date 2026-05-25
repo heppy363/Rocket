@@ -49,6 +49,7 @@ Built by `CMake` today:
 
 - launch/replay/reset controls
 - manual timeline scrub with direct comparison against the selected keyframe
+- dedicated simulation history window with compact traces for altitude, Mach, `q`, `rho`, `P`, `P0`, and Reynolds
 - fixed, follow, and free simulation camera
 - trajectory history and event markers
 - clustered motors with failure toggles
@@ -56,6 +57,7 @@ Built by `CMake` today:
 - live fetch of surface weather from `Open-Meteo`
 - live fetch path for `OpenWeatherMap` with `OPENWEATHERMAP_API_KEY`
 - live telemetry for altitude, velocity, Mach, AoA, dynamic pressure, CG/CP, and static margin
+- historical telemetry traces in the simulation workspace for altitude, Mach, `q`, density, static/total pressure, and Reynolds trend review
 - in-app debug terminal with live cache hit metrics for geometry, aero, CFD, atmosphere, and wind
 
 ### Wind Tunnel / Aero Diagnostics

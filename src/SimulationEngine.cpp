@@ -1,6 +1,7 @@
 #include "rocket/SimulationEngine.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include "rocket/RungeKutta4.hpp"
 
@@ -88,6 +89,50 @@ double currentRenderTime(const SimulationRuntime& runtime) noexcept {
     return runtime.replay_active ? runtime.replay_time_s : runtime.time_s;
 }
 
+double airDynamicViscosityPaS(double temperature_k) noexcept {
+    const double safe_temperature_k = std::max(temperature_k, 180.0);
+    return 1.458e-6 * std::pow(safe_temperature_k, 1.5) / (safe_temperature_k + 110.4);
+}
+
+double reynoldsNumber(
+    const SimulationSnapshot& snapshot,
+    double reference_length_m) noexcept {
+    const double mu = airDynamicViscosityPaS(snapshot.air_temperature_k);
+    return
+        (snapshot.air_density_kgpm3 *
+         std::max(snapshot.relative_air_speed_mps, 0.0) *
+         std::max(reference_length_m, 0.001)) /
+        std::max(mu, 1e-7);
+}
+
+TrajectorySample buildTrajectorySample(
+    const FlightState& state,
+    const VehicleModel& vehicle,
+    const Environment& environment,
+    double time_s,
+    double max_altitude_m) {
+    const ForceResult force_result =
+        computeForces(state, vehicle, environment, time_s);
+    const SimulationSnapshot snapshot = buildSimulationSnapshot(
+        state,
+        vehicle,
+        force_result,
+        environment,
+        time_s,
+        max_altitude_m);
+    return TrajectorySample {
+        .state = state,
+        .time_s = time_s,
+        .altitude_m = snapshot.state.position_m.z,
+        .mach_number = snapshot.mach_number,
+        .dynamic_pressure_pa = snapshot.dynamic_pressure_pa,
+        .air_density_kgpm3 = snapshot.air_density_kgpm3,
+        .static_pressure_pa = snapshot.static_pressure_pa,
+        .total_pressure_pa = snapshot.total_pressure_pa,
+        .reynolds_number = reynoldsNumber(snapshot, vehicle.geometry.body_length_m)
+    };
+}
+
 FlightState currentRenderState(const SimulationRuntime& runtime) noexcept {
     if (runtime.scrub_preview_active && !runtime.trajectory_history.empty()) {
         return sampleTrajectoryState(runtime.trajectory_history, runtime.scrub_preview_time_s);
@@ -164,10 +209,12 @@ std::expected<void, ValidationError> stepSimulationRuntime(
 
         if (runtime.trajectory_history.empty() ||
             (runtime.state.position_m - runtime.trajectory_history.back().state.position_m).magnitude() > 0.2) {
-            runtime.trajectory_history.push_back(TrajectorySample {
-                .state = runtime.state,
-                .time_s = runtime.time_s
-            });
+            runtime.trajectory_history.push_back(buildTrajectorySample(
+                runtime.state,
+                vehicle,
+                environment,
+                runtime.time_s,
+                runtime.max_altitude_m));
         }
         if (runtime.trajectory_history.size() > 2500) {
             runtime.trajectory_history.pop_front();

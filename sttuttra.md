@@ -1,6 +1,6 @@
 # Struttura Del Progetto
 
-Ultimo aggiornamento: `2026-05-13`
+Ultimo aggiornamento: `2026-05-25`
 
 Questo file descrive la struttura reale del repository nello stato attuale.
 
@@ -82,6 +82,7 @@ Questi file sono inclusi da `src/RocketApp.cpp` e rappresentano la UI/interactio
 - `src/app/RocketAppState.inl`: stato applicativo, runtime missione, helper di rebuild e snapshot.
 - `src/app/RocketAppInteraction.inl`: camera, picking, handle, grid, mesh editing, replay.
 - `src/app/RocketAppImGui.inl`: shell Dear ImGui "Dark Space" per toolbar, inspector, scenario e analytics.
+- `src/app/RocketAppImGui.inl`: shell Dear ImGui "Dark Space" per toolbar, inspector, scenario, analytics e nuovo storico missione.
 - `src/app/RocketAppUiTrajectory.inl`: rendering traiettoria, replay ghost e marker di volo.
 - `src/app/RocketAppUiCommon.inl`: primitive UI e utility condivise.
 - `src/app/RocketAppUiWindTunnel.inl`: blocco dedicato al pannello `Wind Tunnel`, streamline, focus card e legenda heatmap.

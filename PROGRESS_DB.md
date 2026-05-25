@@ -1,6 +1,6 @@
 # Context & Progress Database
 
-Ultimo aggiornamento: `2026-05-13`
+Ultimo aggiornamento: `2026-05-25`
 
 ## Executive Summary
 
@@ -24,6 +24,7 @@ Current reality:
 - `SimulationMonitor.cpp`: implemented; external monitor available on Windows
 - F2 analytics now use resizable Dear ImGui hosts while preserving the richer legacy telemetry, trajectory, wind-tunnel, and mission panels
 - live telemetry and mission events in F2 now use cleaner native Dear ImGui layout sections, while trajectory and wind tunnel keep the denser visual simulation layer
+- a dedicated F2 history window now tracks compact mission traces for altitude, Mach, `q`, `rho`, `P`, `P0`, and Reynolds, reusing runtime trajectory telemetry
 
 ### Modeling
 
@@ -65,6 +66,7 @@ Current reality:
 - per-component structural failure visualization during F2 simulation: implemented
 - key mission events and replay: implemented
 - manual timeline scrub with keyframe delta comparison: implemented
+- compact historical graphs for altitude, Mach, `q`, `rho`, `P`, `P0`, `Re`: implemented
 - rail guidance / launch rod phase: not yet implemented
 - layered wind profile and dispersion map: not yet implemented
 
@@ -125,6 +127,7 @@ Current reality:
 - pressure heatmap is now available on the 3D mesh, but it is driven by component-band pressure estimates rather than per-face CFD
 - weather sources are connected to live providers, but fetch is still manual and synchronous
 - mission review now supports manual scrub and keyframe-vs-live deltas, but historical plots are still missing
+- mission review now supports manual scrub, keyframe-vs-live deltas, and compact historical plots for the main aero/atmospheric signals
 
 ### Not Yet Productized
 
@@ -158,3 +161,4 @@ Current reality:
 - deepen topology editing beyond the current first operator set
 - continue refining CFD particle neighborhoods and pressure visualization fidelity
 - add historical simulation graphs and richer comparison tools
+- keep expanding comparison tooling now that the first historical graph window is in place

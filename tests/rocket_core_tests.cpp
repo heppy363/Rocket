@@ -90,8 +90,11 @@ bool testSimulationRuntimeStep() {
     return check(
         nearlyEqual(runtime.time_s, 0.02) &&
             runtime.max_altitude_m <= 100.0 &&
-            !runtime.trajectory_history.empty(),
-        "Simulation runtime should advance time and keep trajectory history");
+            !runtime.trajectory_history.empty() &&
+            runtime.trajectory_history.back().static_pressure_pa > 0.0 &&
+            runtime.trajectory_history.back().air_density_kgpm3 > 0.0 &&
+            runtime.trajectory_history.back().reynolds_number >= 0.0,
+        "Simulation runtime should advance time and keep trajectory history telemetry");
 }
 
 bool testTwoLevelCachesPreserveResults() {

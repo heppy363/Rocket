@@ -5,6 +5,7 @@
 #include <deque>
 #include <filesystem>
 #include <format>
+#include <limits>
 #include <string>
 #include <vector>
 

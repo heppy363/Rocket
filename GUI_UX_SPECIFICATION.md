@@ -1,6 +1,6 @@
 # GUI & UX Specification - Current Direction
 
-Ultimo aggiornamento: `2026-05-13`
+Ultimo aggiornamento: `2026-05-25`
 
 ## Purpose
 
@@ -76,6 +76,7 @@ Implemented:
 - event markers
 - replay mode
 - keyframe review with `K`
+- dedicated `History` window in the simulation workspace with compact plots for altitude, Mach, `q`, `rho`, `P`, `P0`, and Reynolds
 - simulation camera modes
 - per-component stress and failure visualization in the viewport
 - integrated wind-tunnel analysis panel
@@ -130,7 +131,6 @@ Implemented:
 ### Planned / Incomplete
 
 - resizable/dockable layout system
-- richer timeline graphs
 - true transform gizmos for topology editing
 - project save/load UX
 - direct mesh heatmap rendering on the 3D model
@@ -172,4 +172,4 @@ That no longer matches the active build.
 
 1. deepen the Dear ImGui shell until all workflow-critical panels feel cohesive
 2. strengthen the modeling inspector and topology workflow
-3. add richer simulation history views without overloading the layout
+3. evolve the new simulation history window into richer comparison workflows without overloading the layout
