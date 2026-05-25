@@ -229,6 +229,17 @@ bool MotorCluster::isBurning(double time_s) const noexcept {
     });
 }
 
+double MotorCluster::maxBurnTimeS() const noexcept {
+    double max_burn_time_s = 0.0;
+    for (const MountedMotor& mounted_motor : motors_) {
+        if (mounted_motor.failed) {
+            continue;
+        }
+        max_burn_time_s = std::max(max_burn_time_s, mounted_motor.motor.burn_time_s);
+    }
+    return max_burn_time_s;
+}
+
 double MotorCluster::totalPropellantMassKg() const noexcept {
     double total_propellant_mass_kg = 0.0;
     for (const MountedMotor& mounted_motor : motors_) {

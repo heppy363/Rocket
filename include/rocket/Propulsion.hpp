@@ -28,6 +28,7 @@ public:
     [[nodiscard]] Vector3 thrustMomentNm(double time_s) const noexcept;
     [[nodiscard]] double massFlowKgPerS(double time_s) const noexcept;
     [[nodiscard]] bool isBurning(double time_s) const noexcept;
+    [[nodiscard]] double maxBurnTimeS() const noexcept;
     [[nodiscard]] double totalPropellantMassKg() const noexcept;
 
     [[nodiscard]] std::size_t motorCount() const noexcept;

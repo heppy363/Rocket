@@ -160,6 +160,30 @@ bool testExtendedCachesExposeHits() {
                "CFD geometry L1/L2 software cache should record reuse on repeated augmentation queries");
 }
 
+bool testMotorClusterBurnWindowTracksArmedMotors() {
+    rocket::MotorCluster cluster({
+        rocket::MountedMotor {
+            .motor = rocket::Motor {.max_thrust_n = 100.0, .burn_time_s = 1.8, .propellant_mass_kg = 0.10},
+            .mount_position_m = {0.0, 0.0, 0.0},
+            .thrust_direction_body = {0.0, 0.0, 1.0},
+            .failed = false},
+        rocket::MountedMotor {
+            .motor = rocket::Motor {.max_thrust_n = 100.0, .burn_time_s = 3.2, .propellant_mass_kg = 0.10},
+            .mount_position_m = {0.0, 0.0, 0.0},
+            .thrust_direction_body = {0.0, 0.0, 1.0},
+            .failed = true},
+        rocket::MountedMotor {
+            .motor = rocket::Motor {.max_thrust_n = 100.0, .burn_time_s = 2.6, .propellant_mass_kg = 0.10},
+            .mount_position_m = {0.0, 0.0, 0.0},
+            .thrust_direction_body = {0.0, 0.0, 1.0},
+            .failed = false},
+    });
+
+    return check(
+        nearlyEqual(cluster.maxBurnTimeS(), 2.6),
+        "Motor cluster burn window should follow the longest armed motor");
+}
+
 }  // namespace
 
 int main() {
@@ -169,6 +193,7 @@ int main() {
     ok = testSimulationRuntimeStep() && ok;
     ok = testTwoLevelCachesPreserveResults() && ok;
     ok = testExtendedCachesExposeHits() && ok;
+    ok = testMotorClusterBurnWindowTracksArmedMotors() && ok;
 
     if (!ok) {
         return EXIT_FAILURE;

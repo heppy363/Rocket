@@ -25,6 +25,8 @@ Current reality:
 - F2 analytics now use resizable Dear ImGui hosts while preserving the richer legacy telemetry, trajectory, wind-tunnel, and mission panels
 - live telemetry and mission events in F2 now use cleaner native Dear ImGui layout sections, while trajectory and wind tunnel keep the denser visual simulation layer
 - a dedicated F2 history window now tracks compact mission traces for altitude, Mach, `q`, `rho`, `P`, `P0`, and Reynolds, reusing runtime trajectory telemetry
+- the F2 mission timeline and event labeling now derive boost/coast timing from the real armed motor-cluster burn window, not a hard-coded `2.4 s`
+- trajectory overview labels in F2 now stay coherent with the actual inspection mode, including `Scrub`, `Keyframe`, `Replay`, and `Live`
 
 ### Modeling
 

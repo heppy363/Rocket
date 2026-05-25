@@ -290,7 +290,7 @@ void drawSimulationScenario(
 
 void drawSimulationTimeline(const ::Rectangle& bounds, SimulationRuntime& runtime, const rocket::VehicleModel& vehicle) {
     drawPanel(bounds, "Sequenza Missione");
-    const double burn_time_s = 2.4;
+    const double burn_time_s = std::max(vehicle.cluster.maxBurnTimeS(), 1e-6);
     const double timeline_end_s = std::max(
         {
             12.0,
@@ -465,15 +465,35 @@ void drawTrajectoryOverview(const ::Rectangle& bounds, const SimulationRuntime& 
 
     const rocket::FlightState render_state = rocket::currentRenderState(runtime);
     const ::Vector2 current_point = profile_point(render_state.position_m);
-    const bool keyframe_active = runtime.keyframe_preview_active;
-    DrawCircleV(current_point, 6.0f, keyframe_active ? Color {244, 114, 182, 255} : runtime.replay_active ? Color {251, 191, 36, 255} : Color {125, 211, 252, 255});
-    DrawText(keyframe_active ? "Keyframe" : runtime.replay_active ? "Replay" : "Current", static_cast<int>(current_point.x) + 8, static_cast<int>(current_point.y) + 4, 13, keyframe_active ? Color {244, 114, 182, 255} : runtime.replay_active ? Color {251, 191, 36, 255} : Color {125, 211, 252, 255});
+    const char* inspection_mode =
+        runtime.scrub_preview_active ? "Scrub"
+        : runtime.keyframe_preview_active ? "Keyframe"
+        : runtime.replay_active ? "Replay"
+                                : "Current";
+    const Color inspection_color =
+        runtime.scrub_preview_active ? Color {244, 114, 182, 255}
+        : runtime.keyframe_preview_active ? Color {168, 85, 247, 255}
+        : runtime.replay_active ? Color {251, 191, 36, 255}
+                                : Color {125, 211, 252, 255};
+    DrawCircleV(current_point, 6.0f, inspection_color);
+    DrawText(
+        inspection_mode,
+        static_cast<int>(current_point.x) + 8,
+        static_cast<int>(current_point.y) + 4,
+        13,
+        inspection_color);
 
     DrawText("0 m", static_cast<int>(profile.x) + 18, static_cast<int>(profile.y + profile.height - 16.0f), 13, Color {100, 116, 139, 255});
     DrawText(std::format("{:.0f} m range", max_range_m).c_str(), static_cast<int>(profile.x + profile.width - 120.0f), static_cast<int>(profile.y + profile.height - 16.0f), 13, Color {100, 116, 139, 255});
 
     float row_y = summary.y + 12.0f;
-    drawKeyValueLine(Rectangle {summary.x + 12.0f, row_y, summary.width - 24.0f, 20.0f}, "Modalita", runtime.replay_active ? "Replay" : "Live");
+    drawKeyValueLine(
+        Rectangle {summary.x + 12.0f, row_y, summary.width - 24.0f, 20.0f},
+        "Modalita",
+        runtime.scrub_preview_active ? "Scrub"
+        : runtime.keyframe_preview_active ? "Keyframe"
+        : runtime.replay_active ? "Replay"
+                                : "Live");
     row_y += 24.0f;
     drawKeyValueLine(Rectangle {summary.x + 12.0f, row_y, summary.width - 24.0f, 20.0f}, "Tempo volo", std::format("{:.2f} s", runtime.time_s));
     row_y += 24.0f;
@@ -501,13 +521,14 @@ void drawTrajectoryOverview(const ::Rectangle& bounds, const SimulationRuntime& 
 
 void drawSimulationEvents(const ::Rectangle& bounds, const SimulationRuntime& runtime, const rocket::VehicleModel& vehicle, const rocket::SimulationSnapshot& snapshot) {
     drawPanel(bounds, "Stato Missione");
+    const double burn_time_s = vehicle.cluster.maxBurnTimeS();
 
     std::string primary_event = "Awaiting launch";
     if (runtime.keyframe_preview_active) {
         primary_event = "Keyframe analysis mode";
     } else if (runtime.time_s > 0.0 && vehicle.cluster.isBurning(runtime.time_s)) {
         primary_event = "Boost phase active";
-    } else if (runtime.time_s > 2.4 && snapshot.state.position_m.z > 0.0 && snapshot.state.velocity_mps.z > 0.0) {
+    } else if (runtime.time_s > burn_time_s && snapshot.state.position_m.z > 0.0 && snapshot.state.velocity_mps.z > 0.0) {
         primary_event = "Coast to apogee";
     } else if (snapshot.parachute_deployed) {
         primary_event = "Recovery descent";

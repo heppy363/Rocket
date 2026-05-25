@@ -1087,13 +1087,14 @@ void drawSimulationEventsWindowImGui(
     primeWindowRect(state.bounds);
     ImGui::Begin("Mission Events", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
     syncWindowRect(state);
+    const double burn_time_s = vehicle.cluster.maxBurnTimeS();
 
     std::string primary_event = "Awaiting launch";
     if (runtime.keyframe_preview_active) {
         primary_event = "Keyframe analysis mode";
     } else if (runtime.time_s > 0.0 && vehicle.cluster.isBurning(runtime.time_s)) {
         primary_event = "Boost phase active";
-    } else if (runtime.time_s > 2.4 && snapshot.state.position_m.z > 0.0 && snapshot.state.velocity_mps.z > 0.0) {
+    } else if (runtime.time_s > burn_time_s && snapshot.state.position_m.z > 0.0 && snapshot.state.velocity_mps.z > 0.0) {
         primary_event = "Coast to apogee";
     } else if (snapshot.parachute_deployed) {
         primary_event = "Recovery descent";

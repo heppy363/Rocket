@@ -22,6 +22,7 @@ Today the project already includes:
 - material-aware dry mass, inertia, damping, and recommended structural `q` limits
 - in-app CFD-inspired flow diagnostics plus a dedicated external `F3` wind-tunnel window on Windows
 - mission replay, keyframe review, and manual timeline scrub for `Launch`, `Burnout`, `Apogee`, and `Impact`
+- burn timeline and mission-phase labeling now follow the real configured motor-cluster burn duration instead of a fixed boost window
 
 ## What Is In Build
 
