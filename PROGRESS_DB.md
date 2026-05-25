@@ -27,6 +27,7 @@ Current reality:
 - a dedicated F2 history window now tracks compact mission traces for altitude, Mach, `q`, `rho`, `P`, `P0`, and Reynolds, reusing runtime trajectory telemetry
 - the F2 mission timeline and event labeling now derive boost/coast timing from the real armed motor-cluster burn window, not a hard-coded `2.4 s`
 - trajectory overview labels in F2 now stay coherent with the actual inspection mode, including `Scrub`, `Keyframe`, `Replay`, and `Live`
+- mission events panels now explicitly switch into `Scrub` inspection language instead of pretending the user is in live flight phase
 
 ### Modeling
 
@@ -128,7 +129,6 @@ Current reality:
 - CFD diagnostics are informative, but still heuristic
 - pressure heatmap is now available on the 3D mesh, but it is driven by component-band pressure estimates rather than per-face CFD
 - weather sources are connected to live providers, but fetch is still manual and synchronous
-- mission review now supports manual scrub and keyframe-vs-live deltas, but historical plots are still missing
 - mission review now supports manual scrub, keyframe-vs-live deltas, and compact historical plots for the main aero/atmospheric signals
 
 ### Not Yet Productized

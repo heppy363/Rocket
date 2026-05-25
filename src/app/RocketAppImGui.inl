@@ -1090,7 +1090,9 @@ void drawSimulationEventsWindowImGui(
     const double burn_time_s = vehicle.cluster.maxBurnTimeS();
 
     std::string primary_event = "Awaiting launch";
-    if (runtime.keyframe_preview_active) {
+    if (runtime.scrub_preview_active) {
+        primary_event = "Scrub inspection mode";
+    } else if (runtime.keyframe_preview_active) {
         primary_event = "Keyframe analysis mode";
     } else if (runtime.time_s > 0.0 && vehicle.cluster.isBurning(runtime.time_s)) {
         primary_event = "Boost phase active";
@@ -1138,6 +1140,7 @@ void drawSimulationEventsWindowImGui(
     drawKeyValueTableImGui(
         "event-flags",
         {
+            {"Scrub preview", runtime.scrub_preview_active ? "Active" : "Off"},
             {"Replay", runtime.replay_active ? "Active" : "Off"},
             {"Keyframe preview", runtime.keyframe_preview_active ? "Active" : "Off"},
             {"Recovery", snapshot.parachute_deployed ? "Deployed" : "Stowed"},

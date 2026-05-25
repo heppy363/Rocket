@@ -524,7 +524,9 @@ void drawSimulationEvents(const ::Rectangle& bounds, const SimulationRuntime& ru
     const double burn_time_s = vehicle.cluster.maxBurnTimeS();
 
     std::string primary_event = "Awaiting launch";
-    if (runtime.keyframe_preview_active) {
+    if (runtime.scrub_preview_active) {
+        primary_event = "Scrub inspection mode";
+    } else if (runtime.keyframe_preview_active) {
         primary_event = "Keyframe analysis mode";
     } else if (runtime.time_s > 0.0 && vehicle.cluster.isBurning(runtime.time_s)) {
         primary_event = "Boost phase active";
@@ -541,7 +543,9 @@ void drawSimulationEvents(const ::Rectangle& bounds, const SimulationRuntime& ru
     }
 
     std::string next_action = "Prossimo passo: premi Avvia / Riprendi per iniziare la missione.";
-    if (runtime.keyframe_preview_active) {
+    if (runtime.scrub_preview_active) {
+        next_action = "Scrub attivo: trascina la timeline per confrontare quota, eventi e assetto in qualsiasi istante.";
+    } else if (runtime.keyframe_preview_active) {
         next_action = "Analisi puntuale attiva: premi K per il prossimo keyframe oppure SPACE per restare in pausa.";
     } else if (runtime.time_s > 0.0 && vehicle.cluster.isBurning(runtime.time_s)) {
         next_action = "Monitoraggio: osserva telemetria, marker e traiettoria mentre il boost e attivo.";
