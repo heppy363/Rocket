@@ -1088,6 +1088,7 @@ void drawSimulationEventsWindowImGui(
     ImGui::Begin("Mission Events", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
     syncWindowRect(state);
     const double burn_time_s = vehicle.cluster.maxBurnTimeS();
+    const bool boost_available = burn_time_s > 1e-6;
 
     std::string primary_event = "Awaiting launch";
     if (runtime.scrub_preview_active) {
@@ -1096,7 +1097,7 @@ void drawSimulationEventsWindowImGui(
         primary_event = "Keyframe analysis mode";
     } else if (runtime.time_s > 0.0 && vehicle.cluster.isBurning(runtime.time_s)) {
         primary_event = "Boost phase active";
-    } else if (runtime.time_s > burn_time_s && snapshot.state.position_m.z > 0.0 && snapshot.state.velocity_mps.z > 0.0) {
+    } else if (boost_available && runtime.time_s > burn_time_s && snapshot.state.position_m.z > 0.0 && snapshot.state.velocity_mps.z > 0.0) {
         primary_event = "Coast to apogee";
     } else if (snapshot.parachute_deployed) {
         primary_event = "Recovery descent";
@@ -1114,6 +1115,9 @@ void drawSimulationEventsWindowImGui(
                                                     : ImVec4(0.75f, 0.84f, 0.98f, 1.0f);
     ImGui::TextColored(state_color, "%s", primary_event.c_str());
     ImGui::TextDisabled("%s", snapshot.static_margin_calibers >= 1.0 ? "Stabilita nominale" : "Margine statico basso");
+    if (!boost_available) {
+        ImGui::TextDisabled("Cluster without armed motors: the mission will remain in idle until a motor is armed.");
+    }
     ImGui::Separator();
 
     if (ImGui::BeginTable("event-overview", 2, ImGuiTableFlags_SizingStretchSame)) {

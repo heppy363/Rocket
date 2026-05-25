@@ -26,6 +26,7 @@ Current reality:
 - live telemetry and mission events in F2 now use cleaner native Dear ImGui layout sections, while trajectory and wind tunnel keep the denser visual simulation layer
 - a dedicated F2 history window now tracks compact mission traces for altitude, Mach, `q`, `rho`, `P`, `P0`, and Reynolds, reusing runtime trajectory telemetry
 - the F2 mission timeline and event labeling now derive boost/coast timing from the real armed motor-cluster burn window, not a hard-coded `2.4 s`
+- the same mission panels now also handle the zero-armed-motor case explicitly, avoiding fake boost/coast cues when every motor is failed
 - trajectory overview labels in F2 now stay coherent with the actual inspection mode, including `Scrub`, `Keyframe`, `Replay`, and `Live`
 - mission events panels now explicitly switch into `Scrub` inspection language instead of pretending the user is in live flight phase
 

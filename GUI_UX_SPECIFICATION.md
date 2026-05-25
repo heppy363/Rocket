@@ -78,6 +78,7 @@ Implemented:
 - keyframe review with `K`
 - dedicated `History` window in the simulation workspace with compact plots for altitude, Mach, `q`, `rho`, `P`, `P0`, and Reynolds
 - mission timeline and mission-state labeling aligned to the actual configured burn duration of the current motor cluster
+- simulation status messaging now explicitly warns when the current cluster has no armed motors, instead of showing a misleading boost timeline
 - mission events panels now distinguish `Scrub` inspection mode from true live flight states
 - simulation camera modes
 - per-component stress and failure visualization in the viewport

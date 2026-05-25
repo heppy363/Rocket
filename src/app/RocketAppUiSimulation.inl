@@ -290,7 +290,9 @@ void drawSimulationScenario(
 
 void drawSimulationTimeline(const ::Rectangle& bounds, SimulationRuntime& runtime, const rocket::VehicleModel& vehicle) {
     drawPanel(bounds, "Sequenza Missione");
-    const double burn_time_s = std::max(vehicle.cluster.maxBurnTimeS(), 1e-6);
+    const double armed_burn_time_s = vehicle.cluster.maxBurnTimeS();
+    const bool boost_available = armed_burn_time_s > 1e-6;
+    const double burn_time_s = boost_available ? armed_burn_time_s : 1.0;
     const double timeline_end_s = std::max(
         {
             12.0,
@@ -301,7 +303,8 @@ void drawSimulationTimeline(const ::Rectangle& bounds, SimulationRuntime& runtim
             runtime.impact_time_s
         });
     const double normalized_progress = std::clamp(runtime.time_s / timeline_end_s, 0.0, 1.0);
-    const double burn_progress = std::clamp(runtime.time_s / burn_time_s, 0.0, 1.0);
+    const double burn_progress =
+        boost_available ? std::clamp(runtime.time_s / burn_time_s, 0.0, 1.0) : 0.0;
 
     DrawText("Progressione volo", static_cast<int>(bounds.x) + 18, static_cast<int>(bounds.y) + 36, 13, Color {148, 163, 184, 255});
 
@@ -313,14 +316,21 @@ void drawSimulationTimeline(const ::Rectangle& bounds, SimulationRuntime& runtim
         6,
         Color {14, 165, 233, 220});
 
-    DrawText("Fase boost", static_cast<int>(bounds.x) + 18, static_cast<int>(bounds.y) + 76, 13, Color {148, 163, 184, 255});
+    DrawText(
+        boost_available ? "Fase boost" : "Boost non armato",
+        static_cast<int>(bounds.x) + 18,
+        static_cast<int>(bounds.y) + 76,
+        13,
+        Color {148, 163, 184, 255});
     const ::Rectangle burn_bar {bounds.x + 18.0f, bounds.y + 92.0f, bounds.width - 36.0f, 12.0f};
     DrawRectangleRounded(burn_bar, 0.4f, 6, Color {39, 39, 42, 255});
     DrawRectangleRounded(
         Rectangle {burn_bar.x, burn_bar.y, static_cast<float>(burn_bar.width * burn_progress), burn_bar.height},
         0.4f,
         6,
-        vehicle.cluster.isBurning(runtime.time_s) ? Color {249, 115, 22, 230} : Color {82, 82, 91, 230});
+        !boost_available ? Color {71, 85, 105, 220}
+        : vehicle.cluster.isBurning(runtime.time_s) ? Color {249, 115, 22, 230}
+                                                    : Color {82, 82, 91, 230});
 
     const ::Rectangle scrub_bar {bounds.x + 18.0f, bounds.y + 112.0f, bounds.width - 176.0f, 16.0f};
     DrawRectangleRounded(scrub_bar, 0.45f, 8, Color {17, 24, 39, 250});
@@ -522,6 +532,7 @@ void drawTrajectoryOverview(const ::Rectangle& bounds, const SimulationRuntime& 
 void drawSimulationEvents(const ::Rectangle& bounds, const SimulationRuntime& runtime, const rocket::VehicleModel& vehicle, const rocket::SimulationSnapshot& snapshot) {
     drawPanel(bounds, "Stato Missione");
     const double burn_time_s = vehicle.cluster.maxBurnTimeS();
+    const bool boost_available = burn_time_s > 1e-6;
 
     std::string primary_event = "Awaiting launch";
     if (runtime.scrub_preview_active) {
@@ -530,7 +541,7 @@ void drawSimulationEvents(const ::Rectangle& bounds, const SimulationRuntime& ru
         primary_event = "Keyframe analysis mode";
     } else if (runtime.time_s > 0.0 && vehicle.cluster.isBurning(runtime.time_s)) {
         primary_event = "Boost phase active";
-    } else if (runtime.time_s > burn_time_s && snapshot.state.position_m.z > 0.0 && snapshot.state.velocity_mps.z > 0.0) {
+    } else if (boost_available && runtime.time_s > burn_time_s && snapshot.state.position_m.z > 0.0 && snapshot.state.velocity_mps.z > 0.0) {
         primary_event = "Coast to apogee";
     } else if (snapshot.parachute_deployed) {
         primary_event = "Recovery descent";
@@ -547,6 +558,8 @@ void drawSimulationEvents(const ::Rectangle& bounds, const SimulationRuntime& ru
         next_action = "Scrub attivo: trascina la timeline per confrontare quota, eventi e assetto in qualsiasi istante.";
     } else if (runtime.keyframe_preview_active) {
         next_action = "Analisi puntuale attiva: premi K per il prossimo keyframe oppure SPACE per restare in pausa.";
+    } else if (!boost_available && runtime.time_s <= 0.01) {
+        next_action = "Nessun motore armato: abilita almeno un motore dal pannello Scenario prima di avviare la missione.";
     } else if (runtime.time_s > 0.0 && vehicle.cluster.isBurning(runtime.time_s)) {
         next_action = "Monitoraggio: osserva telemetria, marker e traiettoria mentre il boost e attivo.";
     } else if (runtime.replay_active) {

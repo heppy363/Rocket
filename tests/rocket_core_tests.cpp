@@ -180,8 +180,15 @@ bool testMotorClusterBurnWindowTracksArmedMotors() {
     });
 
     return check(
-        nearlyEqual(cluster.maxBurnTimeS(), 2.6),
-        "Motor cluster burn window should follow the longest armed motor");
+               nearlyEqual(cluster.maxBurnTimeS(), 2.6),
+               "Motor cluster burn window should follow the longest armed motor") &&
+           check(
+               [&cluster]() {
+                   cluster.setMotorFailed(0, true);
+                   cluster.setMotorFailed(2, true);
+                   return nearlyEqual(cluster.maxBurnTimeS(), 0.0);
+               }(),
+               "Motor cluster burn window should collapse to zero when no motors are armed");
 }
 
 }  // namespace
