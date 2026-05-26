@@ -1,6 +1,6 @@
 # Context & Progress Database
 
-Ultimo aggiornamento: `2026-05-25`
+Ultimo aggiornamento: `2026-05-26`
 
 ## Executive Summary
 
@@ -8,7 +8,7 @@ The project has now clearly consolidated around the `raylib` desktop application
 
 Current reality:
 
-- the active executable is `rocket_sim`
+- the active CMake app target is `rocket_sim`, but the canonical user-facing binary is now `artifacts/<Config>/RocketLab.exe`
 - the primary UI is the `raylib` 3D workspace in `src/RocketApp.cpp`
 - the active control shell is now `Dear ImGui` via `external/imgui` + `external/rlImGui`
 - procedural modeling, simulation, and aero diagnostics are all wired together
@@ -19,7 +19,8 @@ Current reality:
 
 - `RocketApp.cpp`: implemented and active
 - `src/app/*.inl`: implemented and actively used by the main app
-- `src/app/RocketAppUiTrajectory.inl`: extracted from common UI helpers to keep files bounded and cleaner
+- first extracted app module now lives in dedicated `src/app/RocketAppTrajectory.hpp/.cpp`
+- trajectory rendering helpers are now extracted from common UI helpers into `src/app/RocketAppTrajectory.hpp/.cpp`
 - `src/app/RocketAppImGui.inl`: active Dear ImGui shell for the desktop workflow
 - `SimulationMonitor.cpp`: implemented; external monitor available on Windows
 - F2 analytics now use resizable Dear ImGui hosts while preserving the richer legacy telemetry, trajectory, wind-tunnel, and mission panels
@@ -29,6 +30,7 @@ Current reality:
 - the same mission panels now also handle the zero-armed-motor case explicitly, avoiding fake boost/coast cues when every motor is failed
 - trajectory overview labels in F2 now stay coherent with the actual inspection mode, including `Scrub`, `Keyframe`, `Replay`, and `Live`
 - mission events panels now explicitly switch into `Scrub` inspection language instead of pretending the user is in live flight phase
+- Windows builds now export a single GUI app binary `RocketLab.exe` into `artifacts/<Config>/`, while tests are emitted separately under `artifacts/tests/<Config>/`
 
 ### Modeling
 
@@ -153,6 +155,7 @@ Current reality:
 ## Immediate Risks / Technical Debt
 
 - the `src/app/*.inl` split is better than the old monolith, but still transitional
+- the first migration step away from `.inl` is now in place for trajectory rendering, but the rest of the app shell still needs the same treatment
 - part of the older custom panel code still exists in-tree while the Dear ImGui migration is being completed
 - the new `L1/L2` cache layer is exact-keyed, so it avoids drift but does not yet exploit approximate reuse across nearby states
 - topology edits are serialized, but a full procedural rebuild can still replace local edits
@@ -161,6 +164,7 @@ Current reality:
 ## Next High-Value Moves
 
 - move `src/app/*.inl` into stronger `.hpp/.cpp` modules
+- continue the module extraction after `RocketAppTrajectory` with the next lowest-coupling UI helpers
 - deepen topology editing beyond the current first operator set
 - continue refining CFD particle neighborhoods and pressure visualization fidelity
 - add historical simulation graphs and richer comparison tools

@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(ROCKET_ARTIFACTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/artifacts")
+
 include(CTest)
 
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -43,10 +45,17 @@ add_executable(rocket_sim
     external/imgui/imgui_tables.cpp
     external/imgui/imgui_widgets.cpp
     external/rlImGui/rlImGui.cpp
+    src/app/RocketAppTrajectory.cpp
     src/MeshGenerator.cpp
     src/RocketApp.cpp
     src/SimulationMonitor.cpp
     src/main.cpp
+)
+
+set_target_properties(rocket_sim PROPERTIES
+    OUTPUT_NAME "RocketLab"
+    RUNTIME_OUTPUT_DIRECTORY "${ROCKET_ARTIFACTS_DIR}/$<CONFIG>"
+    PDB_OUTPUT_DIRECTORY "${ROCKET_ARTIFACTS_DIR}/$<CONFIG>"
 )
 
 target_include_directories(rocket_sim
@@ -67,6 +76,12 @@ if (WIN32)
     target_link_libraries(rocket_sim PRIVATE Shell32 Psapi Dxgi)
 endif()
 
+if (WIN32 AND MSVC)
+    target_link_options(rocket_sim PRIVATE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
+elseif (WIN32)
+    target_link_options(rocket_sim PRIVATE "-mwindows")
+endif()
+
 if (WIN32)
     target_link_libraries(rocket_core PUBLIC Comdlg32 Winhttp)
 endif()
@@ -74,6 +89,11 @@ endif()
 if (BUILD_TESTING)
     add_executable(rocket_core_tests
         tests/rocket_core_tests.cpp
+    )
+
+    set_target_properties(rocket_core_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${ROCKET_ARTIFACTS_DIR}/tests/$<CONFIG>"
+        PDB_OUTPUT_DIRECTORY "${ROCKET_ARTIFACTS_DIR}/tests/$<CONFIG>"
     )
 
     target_link_libraries(rocket_core_tests

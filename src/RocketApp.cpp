@@ -33,12 +33,12 @@
 #include "rocket/SimulationRuntime.hpp"
 #include "rocket/VehicleModel.hpp"
 #include "rocket/WeatherProvider.hpp"
+#include "app/RocketAppTrajectory.hpp"
 
 namespace {
 
 #include "app/RocketAppState.inl"
 #include "app/RocketAppInteraction.inl"
-#include "app/RocketAppUiTrajectory.inl"
 #include "app/RocketAppUiCommon.inl"
 #include "app/RocketAppUiWindTunnel.inl"
 #include "app/RocketAppUiModeling.inl"

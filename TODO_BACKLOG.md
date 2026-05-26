@@ -1,12 +1,13 @@
 # TODO Backlog
 
-Ultimo aggiornamento: `2026-05-25`
+Ultimo aggiornamento: `2026-05-26`
 
 ## Highest Priority
 
 - [x] Collegare davvero i provider meteo al runtime con fetch HTTP reale e parsing risposta.
 - [x] Rendere persistenti e serializzabili preset, geometria e topology edits.
 - [~] Portare i moduli `src/app/*.inl` verso coppie `.hpp/.cpp` piu pulite.
+  Primo passo completato: `RocketAppUiTrajectory.inl` migrato a `src/app/RocketAppTrajectory.hpp/.cpp`.
 - [ ] Migliorare il workflow mesh con gizmo piu chiari, selezione piu precisa e operazioni topologiche meno fragili.
 
 ## Modeling

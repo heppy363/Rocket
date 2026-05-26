@@ -29,7 +29,7 @@ Today the project already includes:
 Built by `CMake` today:
 
 - `rocket_core` static library
-- `rocket_sim` executable
+- `rocket_sim` target, exported as the single user-facing executable `RocketLab.exe`
 - dependencies vendored in `external/raylib` and `external/raylib-cpp`
 - UI stack vendored in `external/imgui` and `external/rlImGui`
 
@@ -107,11 +107,16 @@ cmake -S . -B build
 cmake --build build --config Debug
 ```
 
-Output executable:
+Canonical output executable:
 
 ```text
-build/Debug/rocket_sim.exe
+artifacts/Debug/RocketLab.exe
 ```
+
+Note:
+
+- `build/` and `build-gha/` remain only as CMake work directories
+- runtime tests are emitted separately under `artifacts/tests/Debug/`
 
 ## Repository Layout
 

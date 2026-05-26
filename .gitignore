@@ -8,6 +8,7 @@ cmake-build-*/
 out/
 bin/
 lib/
+artifacts/
 # Cartelle di scaricamento dipendenze temporanee
 _deps/
 **/_deps/
