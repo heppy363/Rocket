@@ -8,6 +8,7 @@ Ultimo aggiornamento: `2026-05-26`
 - [x] Rendere persistenti e serializzabili preset, geometria e topology edits.
 - [~] Portare i moduli `src/app/*.inl` verso coppie `.hpp/.cpp` piu pulite.
   Primo passo completato: `RocketAppUiTrajectory.inl` migrato a `src/app/RocketAppTrajectory.hpp/.cpp`.
+  Secondo passo completato: helper aero/visuali del `Wind Tunnel` migrati a `src/app/RocketAppAeroHelpers.hpp/.cpp`.
 - [ ] Migliorare il workflow mesh con gizmo piu chiari, selezione piu precisa e operazioni topologiche meno fragili.
 
 ## Modeling
@@ -37,7 +38,7 @@ Ultimo aggiornamento: `2026-05-26`
 - [x] Portare la heatmap di pressione direttamente sulla mesh 3D del razzo.
 - [~] Raffinare il solver particellare con neighborhood search piu robusta.
 - [ ] Evolvere shockwave e aeroelastic metrics da euristiche a modelli piu fisici.
-- [ ] Chiarire in UI la differenza tra diagnostica CFD-style e solver CFD reale.
+- [x] Chiarire in UI la differenza tra diagnostica CFD-style e solver CFD reale.
 
 ## Data & Project Workflow
 

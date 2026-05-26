@@ -210,6 +210,10 @@ void drawWindTunnelPanel(
     drawTunnelMetric(Rectangle {bounds.x + outer_padding + (metric_w + metric_gap) * 2.0f, header_y, metric_w, 48.0f}, "AoA", std::format("{:.2f} deg", snapshot.angle_of_attack_deg), Color {168, 85, 247, 255});
     drawTunnelMetric(Rectangle {bounds.x + outer_padding + (metric_w + metric_gap) * 3.0f, header_y, metric_w, 48.0f}, "Pressione q", std::format("{:.0f} Pa", snapshot.dynamic_pressure_pa), Color {249, 115, 22, 255});
     drawTunnelMetric(Rectangle {bounds.x + outer_padding + (metric_w + metric_gap) * 4.0f, header_y, metric_w, 48.0f}, "Densita", std::format("{:.3f} kg/m3", snapshot.air_density_kgpm3), Color {125, 211, 252, 255});
+    drawInlineHint(
+        Rectangle {bounds.x + outer_padding, header_y + 54.0f, bounds.width - outer_padding * 2.0f, 28.0f},
+        "Diagnostica CFD-style: heatmap, streamline e carichi seguono un modello euristico realtime, non un solver Navier-Stokes completo.",
+        Color {84, 136, 199, 224});
 
     constexpr std::array<ComponentSelection, 6> focus_components {
         ComponentSelection::NoseCone,
@@ -220,7 +224,7 @@ void drawWindTunnelPanel(
         ComponentSelection::MotorMount
     };
 
-    const float focus_section_y = bounds.y + 94.0f;
+    const float focus_section_y = bounds.y + 126.0f;
     const float left_controls_w = bounds.width - outer_padding * 3.0f - focus_card_w;
     const float selector_gap = 8.0f;
     const float selector_w = (left_controls_w - selector_gap * 2.0f) / 3.0f;

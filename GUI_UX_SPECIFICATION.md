@@ -1,6 +1,6 @@
 # GUI & UX Specification - Current Direction
 
-Ultimo aggiornamento: `2026-05-25`
+Ultimo aggiornamento: `2026-05-26`
 
 ## Purpose
 
@@ -11,6 +11,8 @@ This document now describes the active UX direction of the current `raylib` desk
 The current primary interface is:
 
 - `src/RocketApp.cpp`
+- `src/app/RocketAppTrajectory.hpp/.cpp`
+- `src/app/RocketAppAeroHelpers.hpp/.cpp`
 - `src/app/RocketAppImGui.inl`
 - `src/app/RocketAppState.inl`
 - `src/app/RocketAppInteraction.inl`
@@ -87,6 +89,7 @@ Implemented:
 - native Dear ImGui telemetry/events windows for cleaner scan order without removing the denser visual trajectory and wind-tunnel views
 - wind-tunnel panel visually cleaned to preserve all CFD-style data without label overflow or layout collisions
 - F2 now allows the integrated wind-tunnel panel to be toggled on/off directly from the top-right control area, independently from the external `F3` monitor
+- the integrated `Wind Tunnel` panel now explicitly states that its heatmap/streamline layer is CFD-style realtime diagnostics, not a full volumetric solver
 
 ### External Monitor
 
@@ -168,6 +171,7 @@ That no longer matches the active build.
 ## UX Debt Still Visible
 
 - `src/app/*.inl` still reflects a transitional refactor
+- trajectory rendering and wind-tunnel helper logic have started moving into dedicated `.hpp/.cpp` modules, but the main workflow panels are still transitional
 - some UI controls still exist as older custom overlays while the Dear ImGui migration is being consolidated
 - the topology editing flow is functional but not yet polished enough to feel fully tool-grade
 

@@ -1,6 +1,6 @@
 # Struttura Del Progetto
 
-Ultimo aggiornamento: `2026-05-25`
+Ultimo aggiornamento: `2026-05-26`
 
 Questo file descrive la struttura reale del repository nello stato attuale.
 
@@ -74,6 +74,8 @@ Percorso applicativo attivo:
 - `src/RocketApp.cpp`: loop principale dell'app `raylib`.
 - `src/SimulationMonitor.cpp`: finestra esterna `F3`, oggi specializzata sulla camera del vento.
 - `src/MeshGenerator.cpp`: costruzione mesh, upload GPU, editing topologico di base.
+- `src/app/RocketAppTrajectory.cpp`: modulo estratto per traiettoria, replay ghost e marker di volo.
+- `src/app/RocketAppAeroHelpers.cpp`: helper aero/visuali condivisi per il pannello `Wind Tunnel`.
 
 ## Internal App Modules
 
@@ -83,7 +85,6 @@ Questi file sono inclusi da `src/RocketApp.cpp` e rappresentano la UI/interactio
 - `src/app/RocketAppInteraction.inl`: camera, picking, handle, grid, mesh editing, replay.
 - `src/app/RocketAppImGui.inl`: shell Dear ImGui "Dark Space" per toolbar, inspector, scenario e analytics.
 - `src/app/RocketAppImGui.inl`: shell Dear ImGui "Dark Space" per toolbar, inspector, scenario, analytics e nuovo storico missione.
-- `src/app/RocketAppUiTrajectory.inl`: rendering traiettoria, replay ghost e marker di volo.
 - `src/app/RocketAppUiCommon.inl`: primitive UI e utility condivise.
 - `src/app/RocketAppUiWindTunnel.inl`: blocco dedicato al pannello `Wind Tunnel`, streamline, focus card e legenda heatmap.
 - `src/app/RocketAppUiModeling.inl`: pannelli e workflow del workspace `Modelazione`.
@@ -91,7 +92,7 @@ Questi file sono inclusi da `src/RocketApp.cpp` e rappresentano la UI/interactio
 
 Nota:
 
-- questi `.inl` sono parte della build attiva
+- questi `.inl` restano parte della build attiva insieme ai primi moduli estratti `.hpp/.cpp`
 - restano un passaggio intermedio di refactor, non la forma finale desiderata
 
 ## External Dependencies

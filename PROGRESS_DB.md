@@ -21,6 +21,7 @@ Current reality:
 - `src/app/*.inl`: implemented and actively used by the main app
 - first extracted app module now lives in dedicated `src/app/RocketAppTrajectory.hpp/.cpp`
 - trajectory rendering helpers are now extracted from common UI helpers into `src/app/RocketAppTrajectory.hpp/.cpp`
+- wind-tunnel aero/math helper extraction now lives in dedicated `src/app/RocketAppAeroHelpers.hpp/.cpp`
 - `src/app/RocketAppImGui.inl`: active Dear ImGui shell for the desktop workflow
 - `SimulationMonitor.cpp`: implemented; external monitor available on Windows
 - F2 analytics now use resizable Dear ImGui hosts while preserving the richer legacy telemetry, trajectory, wind-tunnel, and mission panels
@@ -112,6 +113,7 @@ Current reality:
 - local neighborhood smoothing for particle density/alignment: first robustness pass implemented
 - CFD force/moment augmentation into flight model: implemented
 - pressure heatmap directly on 3D mesh: implemented
+- wind-tunnel UI now explicitly labels the CFD layer as real-time CFD-style diagnostics, not a full Navier-Stokes solver: implemented
 - full CFD solver with convergence model: not yet implemented
 
 ## Current User-Facing Capabilities
@@ -155,7 +157,7 @@ Current reality:
 ## Immediate Risks / Technical Debt
 
 - the `src/app/*.inl` split is better than the old monolith, but still transitional
-- the first migration step away from `.inl` is now in place for trajectory rendering, but the rest of the app shell still needs the same treatment
+- the first migration steps away from `.inl` are now in place for trajectory rendering and wind-tunnel helper logic, but the rest of the app shell still needs the same treatment
 - part of the older custom panel code still exists in-tree while the Dear ImGui migration is being completed
 - the new `L1/L2` cache layer is exact-keyed, so it avoids drift but does not yet exploit approximate reuse across nearby states
 - topology edits are serialized, but a full procedural rebuild can still replace local edits
@@ -164,7 +166,7 @@ Current reality:
 ## Next High-Value Moves
 
 - move `src/app/*.inl` into stronger `.hpp/.cpp` modules
-- continue the module extraction after `RocketAppTrajectory` with the next lowest-coupling UI helpers
+- continue the module extraction after `RocketAppTrajectory` and `RocketAppAeroHelpers` with the next lowest-coupling UI helpers
 - deepen topology editing beyond the current first operator set
 - continue refining CFD particle neighborhoods and pressure visualization fidelity
 - add historical simulation graphs and richer comparison tools
