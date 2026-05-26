@@ -45,6 +45,7 @@ add_executable(rocket_sim
     external/imgui/imgui_tables.cpp
     external/imgui/imgui_widgets.cpp
     external/rlImGui/rlImGui.cpp
+    src/app/RocketAppAeroHelpers.cpp
     src/app/RocketAppTrajectory.cpp
     src/MeshGenerator.cpp
     src/RocketApp.cpp

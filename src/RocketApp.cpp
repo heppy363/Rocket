@@ -33,6 +33,7 @@
 #include "rocket/SimulationRuntime.hpp"
 #include "rocket/VehicleModel.hpp"
 #include "rocket/WeatherProvider.hpp"
+#include "app/RocketAppAeroHelpers.hpp"
 #include "app/RocketAppTrajectory.hpp"
 
 namespace {

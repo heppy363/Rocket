@@ -1,71 +1,3 @@
-Color blendColor(Color a, Color b, float t) {
-    const float clamped = std::clamp(t, 0.0f, 1.0f);
-    const auto lerp_channel = [clamped](unsigned char lhs, unsigned char rhs) {
-        return static_cast<unsigned char>(static_cast<float>(lhs) + (static_cast<float>(rhs) - static_cast<float>(lhs)) * clamped);
-    };
-    return {
-        lerp_channel(a.r, b.r),
-        lerp_channel(a.g, b.g),
-        lerp_channel(a.b, b.b),
-        lerp_channel(a.a, b.a)
-    };
-}
-
-double airDynamicViscosityPaS(double temperature_k) {
-    const double safe_temperature_k = std::max(temperature_k, 180.0);
-    return 1.458e-6 * std::pow(safe_temperature_k, 1.5) / (safe_temperature_k + 110.4);
-}
-
-double reynoldsNumber(const rocket::SimulationSnapshot& snapshot, double reference_length_m) {
-    const double mu = airDynamicViscosityPaS(snapshot.air_temperature_k);
-    return (snapshot.air_density_kgpm3 * std::max(snapshot.relative_air_speed_mps, 0.0) * std::max(reference_length_m, 0.001)) /
-           std::max(mu, 1e-7);
-}
-
-float pressureRatio01(double pressure_pa, double reference_pa) {
-    return std::clamp(static_cast<float>(pressure_pa / std::max(reference_pa, 1.0)), 0.0f, 1.0f);
-}
-
-bool pointInsideRect(const ::Vector2& point, const ::Rectangle& rect, float margin = 0.0f) {
-    return point.x >= rect.x - margin &&
-           point.x <= rect.x + rect.width + margin &&
-           point.y >= rect.y - margin &&
-           point.y <= rect.y + rect.height + margin;
-}
-
-::Vector2 sampleWindTunnelFlowPoint(
-    const ::Rectangle& tunnel,
-    float center_y,
-    float nose_tip_x,
-    float nose_base_x,
-    float body_end_x,
-    float tail_end_x,
-    float total_length,
-    float body_radius,
-    float aoa_shift,
-    float turbulence,
-    float compressibility,
-    float pressure_bias,
-    float lane_t,
-    float progress_t,
-    float phase_t) {
-    const float y_seed = tunnel.y + 20.0f + lane_t * (tunnel.height - 40.0f);
-    const float relative_to_body = (y_seed - center_y) / std::max(body_radius * 1.8f, 1.0f);
-    const float body_influence = std::exp(-relative_to_body * relative_to_body);
-    const float x = tunnel.x + 12.0f + progress_t * (tunnel.width - 24.0f);
-    float y = y_seed + aoa_shift * (0.12f + 0.72f * lane_t) * progress_t;
-    if (x >= nose_tip_x - 24.0f && x <= tail_end_x + 24.0f) {
-        const float body_center_x = nose_tip_x + total_length * 0.45f;
-        const float x_norm = (x - body_center_x) / std::max(total_length * 0.42f, 1.0f);
-        y += body_influence * std::exp(-(x_norm * x_norm) * (3.8f + compressibility * 1.2f)) * (relative_to_body * 22.0f + aoa_shift * 0.15f);
-        y += std::sin((progress_t * 9.0f + lane_t * 1.8f + phase_t) * pi) * turbulence * (2.2f + compressibility * 1.2f);
-        if (progress_t > 0.1f && x > nose_base_x && x < body_end_x && compressibility > 0.66f) {
-            y += std::sin((progress_t * 15.0f + lane_t * 2.0f + phase_t * 0.6f) * pi) * (1.4f + pressure_bias * 1.8f);
-        }
-    }
-    return ::Vector2 {x, y};
-}
-
 const char* componentSelectionLabel(ComponentSelection selection) {
     switch (selection) {
     case ComponentSelection::NoseCone:
@@ -193,19 +125,6 @@ const char* focusedComponentInsight(const rocket::VehicleGeometry& geometry, Com
     return "Analisi locale del componente selezionato.";
 }
 
-std::string flowRegimeLabel(const rocket::SimulationSnapshot& snapshot) {
-    if (snapshot.parachute_deployed) {
-        return "Recovery flow";
-    }
-    if (snapshot.mach_number < 0.8) {
-        return "Subsonic";
-    }
-    if (snapshot.mach_number < 1.2) {
-        return "Transonic";
-    }
-    return "Supersonic";
-}
-
 void drawTunnelMetric(
     const ::Rectangle& bounds,
     const std::string& label,
@@ -286,7 +205,7 @@ void drawWindTunnelPanel(
         snapshot.mach_number < 0.8 ? Color {34, 197, 94, 255}
         : snapshot.mach_number < 1.2 ? Color {251, 191, 36, 255}
                                      : Color {239, 68, 68, 255};
-    drawTunnelMetric(Rectangle {bounds.x + outer_padding, header_y, metric_w, 48.0f}, "Regime", flowRegimeLabel(snapshot), regime_color);
+    drawTunnelMetric(Rectangle {bounds.x + outer_padding, header_y, metric_w, 48.0f}, "Regime", rocket::app::flowRegimeLabel(snapshot), regime_color);
     drawTunnelMetric(Rectangle {bounds.x + outer_padding + (metric_w + metric_gap) * 1.0f, header_y, metric_w, 48.0f}, "Velocita aria", std::format("{:.1f} m/s", snapshot.relative_air_speed_mps), Color {56, 189, 248, 255});
     drawTunnelMetric(Rectangle {bounds.x + outer_padding + (metric_w + metric_gap) * 2.0f, header_y, metric_w, 48.0f}, "AoA", std::format("{:.2f} deg", snapshot.angle_of_attack_deg), Color {168, 85, 247, 255});
     drawTunnelMetric(Rectangle {bounds.x + outer_padding + (metric_w + metric_gap) * 3.0f, header_y, metric_w, 48.0f}, "Pressione q", std::format("{:.0f} Pa", snapshot.dynamic_pressure_pa), Color {249, 115, 22, 255});
@@ -371,9 +290,9 @@ void drawWindTunnelPanel(
     const float body_top = center_y - body_radius;
     const float body_bottom = center_y + body_radius;
     const float aoa_shift = recovery_flow ? std::clamp(static_cast<float>(snapshot.angle_of_attack_deg) * 0.45f, -8.0f, 8.0f) : std::clamp(static_cast<float>(snapshot.angle_of_attack_deg) * 2.4f, -22.0f, 22.0f);
-    const float turbulence = pressureRatio01(snapshot.dynamic_pressure_pa, 24000.0);
+    const float turbulence = rocket::app::pressureRatio01(snapshot.dynamic_pressure_pa, 24000.0);
     const float compressibility = recovery_flow ? 0.0f : std::clamp(static_cast<float>(snapshot.mach_number / 1.4), 0.0f, 1.0f);
-    const float pressure_bias = pressureRatio01(snapshot.total_pressure_pa, 160000.0);
+    const float pressure_bias = rocket::app::pressureRatio01(snapshot.total_pressure_pa, 160000.0);
     const int streamline_count = recovery_flow ? 7 : 9 + static_cast<int>(std::round(compressibility * 4.0f));
     const float flow_phase = static_cast<float>(GetTime()) * (0.45f + std::clamp(snapshot.relative_air_speed_mps / 180.0f, 0.12, 1.4));
     const rocket::CfdFrameData& cfd_frame = app_state.cfd_field.frame();
@@ -382,12 +301,12 @@ void drawWindTunnelPanel(
 
     for (int i = 0; i < streamline_count; ++i) {
         const float t = streamline_count <= 1 ? 0.5f : static_cast<float>(i) / static_cast<float>(streamline_count - 1);
-        const Color flow_color = blendColor(Color {56, 189, 248, 170}, regime_color, 0.28f + 0.52f * std::max(turbulence, compressibility));
+        const Color flow_color = rocket::app::blendColor(Color {56, 189, 248, 170}, regime_color, 0.28f + 0.52f * std::max(turbulence, compressibility));
         const float line_thickness = recovery_flow ? 1.15f : 1.2f + turbulence * 0.8f + compressibility * 0.7f;
-        ::Vector2 previous = sampleWindTunnelFlowPoint(tunnel, center_y, nose_tip_x, nose_base_x, body_end_x, tail_end_x, total_length, body_radius, aoa_shift, turbulence, compressibility, pressure_bias, t, 0.0f, flow_phase);
+        ::Vector2 previous = rocket::app::sampleWindTunnelFlowPoint(tunnel, center_y, nose_tip_x, nose_base_x, body_end_x, tail_end_x, total_length, body_radius, aoa_shift, turbulence, compressibility, pressure_bias, t, 0.0f, flow_phase);
         for (int segment = 1; segment <= 42; ++segment) {
             const float s = static_cast<float>(segment) / 42.0f;
-            const ::Vector2 current = sampleWindTunnelFlowPoint(tunnel, center_y, nose_tip_x, nose_base_x, body_end_x, tail_end_x, total_length, body_radius, aoa_shift, turbulence, compressibility, pressure_bias, t, s, flow_phase);
+            const ::Vector2 current = rocket::app::sampleWindTunnelFlowPoint(tunnel, center_y, nose_tip_x, nose_base_x, body_end_x, tail_end_x, total_length, body_radius, aoa_shift, turbulence, compressibility, pressure_bias, t, s, flow_phase);
             DrawLineEx(previous, current, line_thickness, flow_color);
             previous = current;
         }
@@ -397,11 +316,16 @@ void drawWindTunnelPanel(
         for (const auto& particle : cfd_frame.render_particles) {
             const ::Vector2 previous {tunnel.x + 12.0f + static_cast<float>(particle.prev_x_norm) * (tunnel.width - 24.0f), tunnel.y + 12.0f + static_cast<float>(particle.prev_y_norm) * (tunnel.height - 24.0f)};
             const ::Vector2 current {tunnel.x + 12.0f + static_cast<float>(particle.x_norm) * (tunnel.width - 24.0f), tunnel.y + 12.0f + static_cast<float>(particle.y_norm) * (tunnel.height - 24.0f)};
-            if (!pointInsideRect(previous, tunnel, 20.0f) && !pointInsideRect(current, tunnel, 20.0f)) {
+            if (!rocket::app::pointInsideRect(previous, tunnel, 20.0f) &&
+                !rocket::app::pointInsideRect(current, tunnel, 20.0f)) {
                 continue;
             }
-            const float energy_ratio = pressureRatio01(particle.kinetic_energy, std::max(snapshot.dynamic_pressure_pa * 2.0, 1.0));
-            const Color particle_color = blendColor(Color {191, 219, 254, 130}, regime_color, energy_ratio * 0.8f + compressibility * 0.2f);
+            const float energy_ratio =
+                rocket::app::pressureRatio01(particle.kinetic_energy, std::max(snapshot.dynamic_pressure_pa * 2.0, 1.0));
+            const Color particle_color = rocket::app::blendColor(
+                Color {191, 219, 254, 130},
+                regime_color,
+                energy_ratio * 0.8f + compressibility * 0.2f);
             DrawLineEx(previous, current, recovery_flow ? 0.9f : 1.0f + energy_ratio * 1.4f, Color {particle_color.r, particle_color.g, particle_color.b, static_cast<unsigned char>(recovery_flow ? 70 : 90)});
             DrawCircleV(current, recovery_flow ? 1.4f : 1.3f + energy_ratio * 1.5f, Color {particle_color.r, particle_color.g, particle_color.b, static_cast<unsigned char>(recovery_flow ? 110 : 120 + energy_ratio * 100)});
         }
@@ -479,7 +403,8 @@ void drawWindTunnelPanel(
     const double focused_pressure_pa = cfd_frame.component_pressure_pa[focused_band_index];
     const double focused_load_n = std::max(snapshot.dynamic_pressure_pa * focused_area_m2 * focused_load_factor, focused_pressure_pa * focused_area_m2);
     const double sensitivity = focused_load_factor * (1.0 + std::abs(snapshot.angle_of_attack_deg) / 12.0);
-    const double focused_reynolds = reynoldsNumber(snapshot, std::sqrt(std::max(focused_area_m2, 1e-4)));
+    const double focused_reynolds =
+        rocket::app::reynoldsNumber(snapshot, std::sqrt(std::max(focused_area_m2, 1e-4)));
     const auto focused_material = rocket::materialDefinition(focusedComponentMaterial(vehicle.geometry, app_state.wind_tunnel_focus));
     const double focused_q_limit_pa = rocket::estimateComponentDynamicPressureLimitPa(componentTypeFromSelection(app_state.wind_tunnel_focus), vehicle.geometry);
     const double focused_safety_factor = focused_q_limit_pa / std::max(focused_pressure_pa, snapshot.dynamic_pressure_pa * focused_load_factor * 0.65 + 1.0);
