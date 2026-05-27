@@ -34,9 +34,22 @@
 #include "rocket/VehicleModel.hpp"
 #include "rocket/WeatherProvider.hpp"
 #include "app/RocketAppAeroHelpers.hpp"
+#include "app/RocketAppImGuiHelpers.hpp"
 #include "app/RocketAppTrajectory.hpp"
 
 namespace {
+
+using rocket::app::applyDarkSpaceTheme;
+using rocket::app::comboComponentMaterial;
+using rocket::app::comboEnum;
+using rocket::app::dragDouble;
+using rocket::app::dragInt;
+using rocket::app::drawKeyValueTableImGui;
+using rocket::app::drawMetricLabelValue;
+using rocket::app::drawStatCardImGui;
+using rocket::app::primeWindowRect;
+using rocket::app::setWindowRect;
+using rocket::app::toImVec4;
 
 #include "app/RocketAppState.inl"
 #include "app/RocketAppInteraction.inl"

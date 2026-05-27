@@ -22,6 +22,7 @@ Current reality:
 - first extracted app module now lives in dedicated `src/app/RocketAppTrajectory.hpp/.cpp`
 - trajectory rendering helpers are now extracted from common UI helpers into `src/app/RocketAppTrajectory.hpp/.cpp`
 - wind-tunnel aero/math helper extraction now lives in dedicated `src/app/RocketAppAeroHelpers.hpp/.cpp`
+- generic Dear ImGui helper extraction now lives in dedicated `src/app/RocketAppImGuiHelpers.hpp/.cpp`
 - `src/app/RocketAppImGui.inl`: active Dear ImGui shell for the desktop workflow
 - `SimulationMonitor.cpp`: implemented; external monitor available on Windows
 - F2 analytics now use resizable Dear ImGui hosts while preserving the richer legacy telemetry, trajectory, wind-tunnel, and mission panels
@@ -166,7 +167,7 @@ Current reality:
 ## Next High-Value Moves
 
 - move `src/app/*.inl` into stronger `.hpp/.cpp` modules
-- continue the module extraction after `RocketAppTrajectory` and `RocketAppAeroHelpers` with the next lowest-coupling UI helpers
+- continue the module extraction after `RocketAppTrajectory`, `RocketAppAeroHelpers`, and `RocketAppImGuiHelpers` with the next lowest-coupling UI helpers
 - deepen topology editing beyond the current first operator set
 - continue refining CFD particle neighborhoods and pressure visualization fidelity
 - add historical simulation graphs and richer comparison tools

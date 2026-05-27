@@ -9,6 +9,7 @@ Ultimo aggiornamento: `2026-05-26`
 - [~] Portare i moduli `src/app/*.inl` verso coppie `.hpp/.cpp` piu pulite.
   Primo passo completato: `RocketAppUiTrajectory.inl` migrato a `src/app/RocketAppTrajectory.hpp/.cpp`.
   Secondo passo completato: helper aero/visuali del `Wind Tunnel` migrati a `src/app/RocketAppAeroHelpers.hpp/.cpp`.
+  Terzo passo completato: helper Dear ImGui generici migrati a `src/app/RocketAppImGuiHelpers.hpp/.cpp`.
 - [ ] Migliorare il workflow mesh con gizmo piu chiari, selezione piu precisa e operazioni topologiche meno fragili.
 
 ## Modeling
