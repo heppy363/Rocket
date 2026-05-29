@@ -333,9 +333,6 @@ int rocket::runRocketLabApp() {
         if (ctrl_down && IsKeyPressed(KEY_O)) {
             app_state.request_project_load = true;
         }
-        if (ctrl_down && IsKeyPressed(KEY_L)) {
-            app_state.request_project_load = true;
-        }
         if (ctrl_down && IsKeyPressed(KEY_E)) {
             app_state.request_project_export = true;
         }

@@ -47,7 +47,7 @@ Il motore di modellazione 3D deve supportare una mesh persistente per ogni compo
 ## Limiti Correnti
 
 - il `loop cut` e ancora locale al segmento selezionato, non percorre un intero edge loop complesso
-- le operazioni topologiche vivono nella mesh runtime del componente e non sono ancora serializzate nel progetto
+- le operazioni topologiche vivono nella mesh runtime del componente e sono serializzate nel progetto, ma un rebuild procedurale completo puo ancora rimpiazzarle
 - non esistono ancora `multi-select`, `soft selection`, `edge slide`, `inset` esplicito o `bevel` edge-to-edge completo
 
 ## Prossimi Passi

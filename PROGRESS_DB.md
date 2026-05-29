@@ -97,6 +97,7 @@ Current reality:
 - save/load of geometry, materials, scenario, recovery, motor settings, cluster state: implemented
 - save/load of free vertex modifiers: implemented
 - save/load of topology overrides for edited meshes: implemented
+- `.rlab` loader now rejects unsupported `format_version` values explicitly instead of attempting a partial load
 - text report export: implemented
 - trajectory CSV export: implemented
 - file picker workflow: implemented

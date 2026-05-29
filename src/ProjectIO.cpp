@@ -542,6 +542,8 @@ bool loadProjectDocument(
     const std::filesystem::path& path,
     ProjectDocument& document,
     std::string& error_message) {
+    constexpr int supported_format_version = 1;
+
     try {
         std::ifstream input(path, std::ios::binary);
         if (!input) {
@@ -557,6 +559,18 @@ bool loadProjectDocument(
         }
 
         const ParsedDocument parsed = parseProjectFile(input);
+        int format_version = supported_format_version;
+        if (!loadNumberIfPresent(parsed, "format_version", format_version, error_message)) {
+            return false;
+        }
+        if (format_version != supported_format_version) {
+            error_message = std::format(
+                "Unsupported .rlab format_version {}. Expected {}.",
+                format_version,
+                supported_format_version);
+            return false;
+        }
+
         ProjectDocument loaded {};
 
         if (const auto preset_value = lookup(parsed, "project.active_preset"); preset_value.has_value()) {

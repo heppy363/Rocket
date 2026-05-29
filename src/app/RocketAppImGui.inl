@@ -24,6 +24,12 @@ void drawTransientStatusInline(const AppState& app_state) {
     }
 }
 
+void drawTopBarActionButton(const char* label, bool& request_flag, const ImVec2& size) {
+    if (ImGui::Button(label, size)) {
+        request_flag = true;
+    }
+}
+
 void applyComponentQuickPreset(
     AppState& app_state,
     rocket::VehicleModel& vehicle,
@@ -353,29 +359,23 @@ void drawTopBarImGui(AppState& app_state, SimulationRuntime& runtime) {
     }
 
     ImGui::NextColumn();
-    if (ImGui::Button("Save", ImVec2(84.0f, 30.0f))) {
-        app_state.request_project_save = true;
-    }
+    drawTopBarActionButton("Save", app_state.request_project_save, ImVec2(84.0f, 30.0f));
     ImGui::SameLine();
-    if (ImGui::Button("Save As", ImVec2(84.0f, 30.0f))) {
-        app_state.request_project_save_as = true;
-    }
+    drawTopBarActionButton("Save As", app_state.request_project_save_as, ImVec2(84.0f, 30.0f));
     ImGui::SameLine();
-    if (ImGui::Button("Load", ImVec2(84.0f, 30.0f))) {
-        app_state.request_project_load = true;
-    }
+    drawTopBarActionButton("Load", app_state.request_project_load, ImVec2(84.0f, 30.0f));
     ImGui::SameLine();
-    if (ImGui::Button("Export", ImVec2(84.0f, 30.0f))) {
-        app_state.request_project_export = true;
-    }
+    drawTopBarActionButton("Export", app_state.request_project_export, ImVec2(84.0f, 30.0f));
     ImGui::SameLine();
-    if (ImGui::Button(app_state.show_simulation_window ? "F3 Monitor ON" : "F3 Monitor OFF", ImVec2(140.0f, 30.0f))) {
-        app_state.request_simulation_window_toggle = true;
-    }
+    drawTopBarActionButton(
+        app_state.show_simulation_window ? "F3 Monitor ON" : "F3 Monitor OFF",
+        app_state.request_simulation_window_toggle,
+        ImVec2(140.0f, 30.0f));
     ImGui::SameLine();
-    if (ImGui::Button(app_state.show_debug_terminal ? "F4 Debug ON" : "F4 Debug OFF", ImVec2(140.0f, 30.0f))) {
-        app_state.request_debug_terminal_toggle = true;
-    }
+    drawTopBarActionButton(
+        app_state.show_debug_terminal ? "F4 Debug ON" : "F4 Debug OFF",
+        app_state.request_debug_terminal_toggle,
+        ImVec2(140.0f, 30.0f));
     if (app_state.workspace == Workspace::Simulation) {
         if (ImGui::Button(
                 app_state.show_wind_tunnel_panel ? "Wind Tunnel ON" : "Wind Tunnel OFF",
@@ -903,15 +903,24 @@ void drawSimulationEventsWindowImGui(
     syncWindowRect(state);
     const double burn_time_s = vehicle.cluster.maxBurnTimeS();
     const bool boost_available = burn_time_s > 1e-6;
+    const bool snapshot_in_boost =
+        snapshot.time_s > 0.0 && boost_available && vehicle.cluster.isBurning(snapshot.time_s);
+    const bool inspection_mode =
+        runtime.scrub_preview_active || runtime.keyframe_preview_active || runtime.replay_active;
 
     std::string primary_event = "Awaiting launch";
     if (runtime.scrub_preview_active) {
         primary_event = "Scrub inspection mode";
     } else if (runtime.keyframe_preview_active) {
         primary_event = "Keyframe analysis mode";
-    } else if (runtime.time_s > 0.0 && vehicle.cluster.isBurning(runtime.time_s)) {
+    } else if (runtime.replay_active) {
+        primary_event = "Replay inspection mode";
+    } else if (snapshot_in_boost) {
         primary_event = "Boost phase active";
-    } else if (boost_available && runtime.time_s > burn_time_s && snapshot.state.position_m.z > 0.0 && snapshot.state.velocity_mps.z > 0.0) {
+    } else if (
+        boost_available && snapshot.time_s > burn_time_s &&
+        snapshot.state.position_m.z > 0.0 &&
+        snapshot.state.velocity_mps.z > 0.0) {
         primary_event = "Coast to apogee";
     } else if (snapshot.parachute_deployed) {
         primary_event = "Recovery descent";
@@ -924,9 +933,10 @@ void drawSimulationEventsWindowImGui(
     }
 
     const ImVec4 state_color =
-        snapshot.parachute_deployed ? ImVec4(0.49f, 0.86f, 0.62f, 1.0f)
-        : vehicle.cluster.isBurning(runtime.time_s) ? ImVec4(0.99f, 0.67f, 0.38f, 1.0f)
-                                                    : ImVec4(0.75f, 0.84f, 0.98f, 1.0f);
+        inspection_mode ? ImVec4(0.72f, 0.80f, 0.95f, 1.0f)
+        : snapshot.parachute_deployed ? ImVec4(0.49f, 0.86f, 0.62f, 1.0f)
+        : snapshot_in_boost ? ImVec4(0.99f, 0.67f, 0.38f, 1.0f)
+                            : ImVec4(0.75f, 0.84f, 0.98f, 1.0f);
     ImGui::TextColored(state_color, "%s", primary_event.c_str());
     ImGui::TextDisabled("%s", snapshot.static_margin_calibers >= 1.0 ? "Stabilita nominale" : "Margine statico basso");
     if (!boost_available) {

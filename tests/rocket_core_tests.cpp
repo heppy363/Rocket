@@ -1,11 +1,14 @@
 #include <cmath>
 #include <cstdlib>
 #include <expected>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 
 #include "rocket/Aerodynamics.hpp"
 #include "rocket/CfdModule.hpp"
 #include "rocket/Environment.hpp"
+#include "rocket/ProjectIO.hpp"
 #include "rocket/RungeKutta4.hpp"
 #include "rocket/SimulationCaches.hpp"
 #include "rocket/SimulationEngine.hpp"
@@ -191,6 +194,101 @@ bool testMotorClusterBurnWindowTracksArmedMotors() {
                "Motor cluster burn window should collapse to zero when no motors are armed");
 }
 
+bool testProjectDocumentRoundTripPreservesMeshEdits() {
+    namespace fs = std::filesystem;
+
+    rocket::ProjectDocument saved;
+    saved.active_preset = rocket::RocketPreset::HeavyLift;
+    saved.vehicle = makeValidVehicle();
+    saved.vehicle.geometry = rocket::makePresetGeometry(rocket::RocketPreset::HeavyLift);
+    saved.vehicle.geometry.nose_vertex_mods.component_type = rocket::ComponentType::NoseCone;
+    saved.vehicle.geometry.nose_vertex_mods.is_active = true;
+    saved.vehicle.geometry.nose_vertex_mods.modified_vertices.push_back(rocket::FreeControlVertex {
+        .vertex_id = 7,
+        .base_position_m = {0.01, -0.02, 0.33},
+        .offset_m = {0.004, 0.001, -0.006},
+        .influence_radius_m = 0.085,
+        .locked = true});
+    saved.vehicle.geometry.motor_topology_override.component_type = rocket::ComponentType::MotorMount;
+    saved.vehicle.geometry.motor_topology_override.is_active = true;
+    saved.vehicle.geometry.motor_topology_override.vertex_positions_body_m = {
+        {-0.02, 0.00, -0.11},
+        {0.02, 0.00, -0.11},
+        {0.00, 0.03, -0.16}};
+    saved.vehicle.geometry.motor_topology_override.indices = {0u, 1u, 2u};
+    saved.launch_site = {.latitude_deg = 45.1, .longitude_deg = 9.2, .elevation_m = 220.0};
+    saved.surface_weather = {
+        .pressure_hpa = 1008.0,
+        .temperature_c = 21.5,
+        .humidity_percent = 48.0,
+        .wind_speed_mps = 6.5,
+        .wind_direction_deg = 135.0,
+        .wind_gust_mps = 9.1};
+    saved.weather_source = rocket::WeatherDataSource::OpenMeteoReady;
+    saved.motor_settings = {
+        .motor_count = 3,
+        .max_thrust_n = 310.0,
+        .burn_time_s = 2.7,
+        .propellant_mass_kg = 0.41,
+        .mount_radius_m = 0.052,
+        .cant_angle_deg = 1.75};
+
+    const fs::path temp_path = fs::temp_directory_path() / "rocket_project_roundtrip_test.rlab";
+    std::string error_message;
+    const bool saved_ok = rocket::saveProjectDocument(temp_path, saved, error_message);
+
+    rocket::ProjectDocument loaded;
+    const bool loaded_ok = saved_ok && rocket::loadProjectDocument(temp_path, loaded, error_message);
+    fs::remove(temp_path);
+
+    return check(saved_ok, "saveProjectDocument should write a valid .rlab file") &&
+           check(loaded_ok, "loadProjectDocument should load a saved .rlab file") &&
+           check(
+               loaded.active_preset == saved.active_preset &&
+                   loaded.weather_source == saved.weather_source &&
+                   nearlyEqual(loaded.motor_settings.cant_angle_deg, saved.motor_settings.cant_angle_deg),
+               "Project roundtrip should preserve preset, weather source, and motor editor state") &&
+           check(
+               loaded.vehicle.geometry.nose_vertex_mods.is_active &&
+                   loaded.vehicle.geometry.nose_vertex_mods.modified_vertices.size() == 1 &&
+                   loaded.vehicle.geometry.nose_vertex_mods.modified_vertices.front().locked &&
+                   nearlyEqual(
+                       loaded.vehicle.geometry.nose_vertex_mods.modified_vertices.front().offset_m.z,
+                       saved.vehicle.geometry.nose_vertex_mods.modified_vertices.front().offset_m.z),
+               "Project roundtrip should preserve free vertex modifiers") &&
+           check(
+               loaded.vehicle.geometry.motor_topology_override.is_active &&
+                   loaded.vehicle.geometry.motor_topology_override.vertex_positions_body_m.size() == 3 &&
+                   loaded.vehicle.geometry.motor_topology_override.indices == saved.vehicle.geometry.motor_topology_override.indices &&
+                   nearlyEqual(
+                       loaded.vehicle.geometry.motor_topology_override.vertex_positions_body_m.back().y,
+                       saved.vehicle.geometry.motor_topology_override.vertex_positions_body_m.back().y),
+               "Project roundtrip should preserve topology overrides");
+}
+
+bool testProjectDocumentRejectsUnsupportedFormatVersion() {
+    namespace fs = std::filesystem;
+
+    const fs::path temp_path = fs::temp_directory_path() / "rocket_project_bad_version_test.rlab";
+    {
+        std::ofstream output(temp_path, std::ios::binary);
+        output << "rocket_lab_project\n";
+        output << "format_version=99\n";
+        output << "\n[project]\n";
+        output << "active_preset=Research Starter\n";
+    }
+
+    rocket::ProjectDocument loaded;
+    std::string error_message;
+    const bool ok = rocket::loadProjectDocument(temp_path, loaded, error_message);
+    fs::remove(temp_path);
+
+    return check(!ok, "loadProjectDocument should reject unsupported format versions") &&
+           check(
+               error_message.find("Unsupported .rlab format_version") != std::string::npos,
+               "loadProjectDocument should report an unsupported format version clearly");
+}
+
 }  // namespace
 
 int main() {
@@ -201,6 +299,8 @@ int main() {
     ok = testTwoLevelCachesPreserveResults() && ok;
     ok = testExtendedCachesExposeHits() && ok;
     ok = testMotorClusterBurnWindowTracksArmedMotors() && ok;
+    ok = testProjectDocumentRoundTripPreservesMeshEdits() && ok;
+    ok = testProjectDocumentRejectsUnsupportedFormatVersion() && ok;
 
     if (!ok) {
         return EXIT_FAILURE;
