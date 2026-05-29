@@ -449,7 +449,7 @@ void drawModelingHandlesOverlay(
         return;
     }
 
-    for (const auto& handle : buildHandleSpecs(app_state, vehicle, motor_editor, mesh_generator)) {
+    for (const auto& handle : app_state.modeling_handle_cache) {
         const ::Vector2 screen = GetWorldToScreen(toRaylib(handle.world_position), camera);
         const bool selected =
             (handle.kind == HandleKind::VertexFree && handle.topology_id == app_state.selected_vertex_id) ||
@@ -524,7 +524,7 @@ void drawModelingHandleLabels(
         return;
     }
 
-    for (const auto& handle : buildHandleSpecs(app_state, vehicle, motor_editor, mesh_generator)) {
+    for (const auto& handle : app_state.modeling_handle_cache) {
         const bool selected =
             (handle.kind == HandleKind::VertexFree && handle.topology_id == app_state.selected_vertex_id) ||
             (handle.kind == HandleKind::EdgeFree && handle.topology_id == app_state.selected_edge_id) ||

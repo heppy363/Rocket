@@ -668,6 +668,7 @@ void updateViewportModelingInteraction(
     if (app_state.workspace != Workspace::Modeling) {
         app_state.dragging_handle = false;
         app_state.active_handle = HandleKind::None;
+        app_state.modeling_handle_cache.clear();
         return;
     }
 
@@ -676,7 +677,8 @@ void updateViewportModelingInteraction(
         return;
     }
 
-    const std::vector<HandleSpec> handles = buildHandleSpecs(app_state, vehicle, motor_editor, mesh_generator);
+    app_state.modeling_handle_cache = buildHandleSpecs(app_state, vehicle, motor_editor, mesh_generator);
+    const std::vector<HandleSpec>& handles = app_state.modeling_handle_cache;
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
         const int picked_index = pickHandleIndex(handles, camera);
         if (picked_index >= 0) {
@@ -724,6 +726,8 @@ void updateViewportModelingInteraction(
         }
         app_state.dragging_handle = false;
     }
+
+    app_state.modeling_handle_cache = buildHandleSpecs(app_state, vehicle, motor_editor, mesh_generator);
 }
 
 bool isRectangleClicked(const ::Rectangle& bounds) {

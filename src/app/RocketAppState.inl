@@ -287,6 +287,7 @@ struct AppState {
     std::filesystem::path current_project_path {"projects/rocket_lab_current.rlab"};
     std::filesystem::path current_report_path {"exports/rocket_lab_report.txt"};
     std::filesystem::path current_trajectory_csv_path {"exports/rocket_lab_trajectory.csv"};
+    std::vector<HandleSpec> modeling_handle_cache {};
 };
 
 void rebuildVehicle(
