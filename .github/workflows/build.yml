@@ -22,6 +22,7 @@ jobs:
           cmake -S . -B build
           -G "Visual Studio 17 2022"
           -A x64
+          -DROCKET_ARTIFACTS_DIR="${{ github.workspace }}/build/artifacts"
           -DBUILD_TESTING=ON
 
       - name: Build
@@ -29,3 +30,12 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build -C Debug --output-on-failure
+
+      - name: Dump CTest Log On Failure
+        if: failure()
+        run: |
+          if (Test-Path "build/Testing/Temporary/LastTest.log") {
+            Get-Content "build/Testing/Temporary/LastTest.log"
+          } else {
+            Write-Host "No CTest log found."
+          }

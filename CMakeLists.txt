@@ -6,7 +6,11 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(ROCKET_ARTIFACTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/artifacts")
+set(
+    ROCKET_ARTIFACTS_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/artifacts"
+    CACHE PATH
+    "Directory used for built executables and PDB artifacts.")
 
 include(CTest)
 
