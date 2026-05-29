@@ -380,6 +380,24 @@ std::vector<MeshEdgeData> buildEdgeCache(
     return mesh;
 }
 
+void syncGpuMeshVertexArrays(::Mesh& mesh, const IndexedMeshData& topology) {
+    if (mesh.vertices == nullptr || mesh.normals == nullptr) {
+        return;
+    }
+
+    for (std::size_t index = 0; index < topology.vertices.size(); ++index) {
+        const auto& vertex = topology.vertices[index];
+        const ::Vector3 position = toRaylibLocal(vertex.position_body_m);
+        const ::Vector3 normal = toRaylibLocal(vertex.normal_body);
+        mesh.vertices[index * 3] = position.x;
+        mesh.vertices[index * 3 + 1] = position.y;
+        mesh.vertices[index * 3 + 2] = position.z;
+        mesh.normals[index * 3] = normal.x;
+        mesh.normals[index * 3 + 1] = normal.y;
+        mesh.normals[index * 3 + 2] = normal.z;
+    }
+}
+
 float noseRadiusAt(
     double distance_from_base_m,
     double base_radius_m,
@@ -825,10 +843,31 @@ struct MeshGenerator::Impl {
 
     void refreshComponentSurface(ComponentMeshGpu& component) {
         recomputeNormals(component.topology);
-        if (component.gpu_mesh.vertexCount > 0) {
-            UnloadMesh(component.gpu_mesh);
+        if (component.gpu_mesh.vertexCount != static_cast<int>(component.topology.vertices.size()) ||
+            component.gpu_mesh.triangleCount != static_cast<int>(component.topology.indices.size() / 3) ||
+            component.gpu_mesh.vertices == nullptr ||
+            component.gpu_mesh.normals == nullptr ||
+            component.gpu_mesh.vboId == nullptr) {
+            if (component.gpu_mesh.vertexCount > 0) {
+                UnloadMesh(component.gpu_mesh);
+            }
+            component.gpu_mesh = uploadMesh(component.topology);
+            return;
         }
-        component.gpu_mesh = uploadMesh(component.topology);
+
+        syncGpuMeshVertexArrays(component.gpu_mesh, component.topology);
+        UpdateMeshBuffer(
+            component.gpu_mesh,
+            SHADER_LOC_VERTEX_POSITION,
+            component.gpu_mesh.vertices,
+            component.gpu_mesh.vertexCount * 3 * static_cast<int>(sizeof(float)),
+            0);
+        UpdateMeshBuffer(
+            component.gpu_mesh,
+            SHADER_LOC_VERTEX_NORMAL,
+            component.gpu_mesh.normals,
+            component.gpu_mesh.vertexCount * 3 * static_cast<int>(sizeof(float)),
+            0);
     }
 
     void applyPressureOverlay() {
