@@ -823,6 +823,14 @@ struct MeshGenerator::Impl {
         component.gpu_mesh = uploadMesh(component.topology);
     }
 
+    void refreshComponentSurface(ComponentMeshGpu& component) {
+        recomputeNormals(component.topology);
+        if (component.gpu_mesh.vertexCount > 0) {
+            UnloadMesh(component.gpu_mesh);
+        }
+        component.gpu_mesh = uploadMesh(component.topology);
+    }
+
     void applyPressureOverlay() {
         const auto component_color = [&](ComponentMaterial material, CfdComponentBand band) {
             const Color base = materialBaseColor(material);
@@ -1063,15 +1071,34 @@ bool MeshGenerator::componentVertexPosition(ComponentType component, int vertex_
     return true;
 }
 
-bool MeshGenerator::setComponentVertexPosition(ComponentType component, int vertex_id, const Vector3& position_body_m) {
+bool MeshGenerator::setComponentVertexPosition(
+    ComponentType component,
+    int vertex_id,
+    const Vector3& position_body_m,
+    bool rebuild_topology_caches) {
     auto* mesh = impl_->component(component);
     if (mesh == nullptr || vertex_id < 0 || static_cast<std::size_t>(vertex_id) >= mesh->topology.vertices.size()) {
         return false;
     }
 
-    mesh->topology.vertices[static_cast<std::size_t>(vertex_id)].position_body_m = position_body_m;
-    impl_->refreshComponent(*mesh);
+    auto& vertex = mesh->topology.vertices[static_cast<std::size_t>(vertex_id)];
+    if ((vertex.position_body_m - position_body_m).magnitude() <= 1e-9) {
+        return false;
+    }
+
+    vertex.position_body_m = position_body_m;
+    if (rebuild_topology_caches) {
+        impl_->refreshComponent(*mesh);
+    } else {
+        impl_->refreshComponentSurface(*mesh);
+    }
     return true;
+}
+
+void MeshGenerator::finalizeComponentMeshEdits(ComponentType component) {
+    if (auto* mesh = impl_->component(component); mesh != nullptr) {
+        impl_->refreshComponent(*mesh);
+    }
 }
 
 bool MeshGenerator::extrudeComponentFace(ComponentType component, int face_id, double distance_m) {

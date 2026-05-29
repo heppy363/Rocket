@@ -71,7 +71,12 @@ public:
     [[nodiscard]] const std::vector<MeshFaceData>* componentFaces(ComponentType component) const noexcept;
     [[nodiscard]] std::size_t componentVertexCount(ComponentType component) const noexcept;
     [[nodiscard]] bool componentVertexPosition(ComponentType component, int vertex_id, Vector3& out_position_body_m) const noexcept;
-    [[nodiscard]] bool setComponentVertexPosition(ComponentType component, int vertex_id, const Vector3& position_body_m);
+    [[nodiscard]] bool setComponentVertexPosition(
+        ComponentType component,
+        int vertex_id,
+        const Vector3& position_body_m,
+        bool rebuild_topology_caches = true);
+    void finalizeComponentMeshEdits(ComponentType component);
     [[nodiscard]] bool extrudeComponentFace(ComponentType component, int face_id, double distance_m);
     [[nodiscard]] bool bevelComponentFace(ComponentType component, int face_id, double inset_ratio, double normal_offset_m);
     [[nodiscard]] bool loopCutComponentEdge(ComponentType component, int edge_id);

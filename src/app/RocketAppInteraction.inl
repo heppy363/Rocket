@@ -524,10 +524,8 @@ bool applyVertexDrag(
         const bool updated = mesh_generator.setComponentVertexPosition(
             selectedComponentType(app_state),
             vertex.vertex_id,
-            vertex.base_position_m + vertex.offset_m);
-        if (updated) {
-            syncComponentTopologyOverride(vehicle, mesh_generator, selectedComponentType(app_state));
-        }
+            vertex.base_position_m + vertex.offset_m,
+            false);
         return updated;
     }
 
@@ -719,6 +717,11 @@ void updateViewportModelingInteraction(
     }
 
     if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+        if (app_state.active_handle == HandleKind::VertexFree) {
+            const auto component = selectedComponentType(app_state);
+            mesh_generator.finalizeComponentMeshEdits(component);
+            syncComponentTopologyOverride(vehicle, mesh_generator, component);
+        }
         app_state.dragging_handle = false;
     }
 }
