@@ -108,11 +108,14 @@ Not yet implemented:
 
 - launch rail guidance
 - staged propulsion
-- layered wind profile by altitude bands
 - true Barrowman-grade full-detail CP breakdown per component
 - controller/autopilot logic
 - dispersion maps
 - high-fidelity transonic/supersonic aero database
+
+Implemented in first pass:
+
+- layered wind profile by altitude bands with directional veer and shear derived from the current surface weather state
 
 ## CFD Layer: What It Is Today
 

@@ -58,6 +58,7 @@ Built by `CMake` today:
 - configurable scenario inputs for launch elevation, wind, gust, direction, and recovery
 - live fetch of surface weather from `Open-Meteo`
 - live fetch path for `OpenWeatherMap` with `OPENWEATHERMAP_API_KEY`
+- first multilayer wind profile pass with altitude-band shear and directional veer derived from the active surface weather
 - live telemetry for altitude, velocity, Mach, AoA, dynamic pressure, CG/CP, and static margin
 - historical telemetry traces in the simulation workspace for altitude, Mach, `q`, density, static/total pressure, and Reynolds trend review
 - in-app debug terminal with live cache hit metrics for geometry, aero, CFD, atmosphere, and wind

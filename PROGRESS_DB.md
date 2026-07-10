@@ -78,7 +78,8 @@ Current reality:
 - manual timeline scrub with keyframe delta comparison: implemented
 - compact historical graphs for altitude, Mach, `q`, `rho`, `P`, `P0`, `Re`: implemented
 - rail guidance / launch rod phase: not yet implemented
-- layered wind profile and dispersion map: not yet implemented
+- layered wind profile: first implementation completed
+- dispersion map: not yet implemented
 
 ### Atmosphere & Weather
 
@@ -91,6 +92,7 @@ Current reality:
 - live weather fetch service: implemented
 - `Open-Meteo` runtime fetch + parsing: implemented
 - `OpenWeatherMap` runtime fetch + parsing: implemented when `OPENWEATHERMAP_API_KEY` is present
+- first multilayer wind shear profile across altitude bands with directional veer: implemented
 - auto refresh / async polling / forecast blending: not yet implemented
 
 ### Data & Project Workflow

@@ -28,7 +28,8 @@ Ultimo aggiornamento: `2026-05-26`
 - [x] Estendere il sistema di cache software `L1/L2` a piu sottosistemi hot-path con metriche di cache hit.
 - [x] Aggiungere scrub manuale e confronto fra keyframe.
 - [x] Introdurre grafici storici per quota, Mach, `q`, `rho`, `P`, `P0`, `Re`.
-- [ ] Migliorare il profilo vento con shear multilayer.
+- [~] Migliorare il profilo vento con shear multilayer.
+  Primo pass completato: il runtime usa ora bande di quota con shear e directional veer, mantenendo compatibilita con i dati meteo esistenti.
 - [ ] Aggiungere fase di launch rail / rail guidance.
 - [ ] Aggiungere mappe di dispersione e landing analysis.
 

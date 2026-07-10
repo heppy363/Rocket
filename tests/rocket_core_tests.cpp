@@ -121,6 +121,41 @@ bool testTwoLevelCachesPreserveResults() {
                "Vehicle geometry L1/L2 software cache should preserve derived structural results");
 }
 
+bool testMultilayerWindProfileBuildsShearAndCacheHits() {
+    rocket::Environment environment;
+    environment.setSurfaceWeather(rocket::SurfaceWeather {
+        .pressure_hpa = 1011.0,
+        .temperature_c = 17.0,
+        .humidity_percent = 52.0,
+        .wind_speed_mps = 7.5,
+        .wind_direction_deg = 90.0,
+        .wind_gust_mps = 12.5});
+
+    const rocket::Vector3 near_surface = environment.windVelocityWorldMps(0.0, 15.0);
+    const rocket::Vector3 lower_layer = environment.windVelocityWorldMps(250.0, 15.0);
+    const rocket::Vector3 upper_layer = environment.windVelocityWorldMps(1600.0, 15.0);
+    const rocket::Vector3 repeated_upper_layer = environment.windVelocityWorldMps(1600.0, 15.0);
+    const auto cache_stats = environment.cacheStats();
+
+    const double near_speed = near_surface.magnitude();
+    const double lower_speed = lower_layer.magnitude();
+    const double upper_speed = upper_layer.magnitude();
+    const double horizontal_dot =
+        (near_surface.x * upper_layer.x + near_surface.y * upper_layer.y) /
+        std::max(near_speed * upper_speed, 1e-9);
+
+    return check(
+               lower_speed > near_speed && upper_speed > lower_speed,
+               "Multilayer wind profile should build stronger flow aloft than at the pad") &&
+           check(
+               horizontal_dot < 0.995,
+               "Multilayer wind profile should veer direction across altitude bands") &&
+           check(
+               nearlyEqual(upper_speed, repeated_upper_layer.magnitude()) &&
+                   cache_stats.wind.l1_hits > 0,
+               "Wind cache should preserve repeated multilayer samples");
+}
+
 bool testExtendedCachesExposeHits() {
     const rocket::VehicleModel vehicle = makeValidVehicle();
     const rocket::Environment environment;
@@ -297,6 +332,7 @@ int main() {
     ok = testTryIntegrateRk4AdvancesState() && ok;
     ok = testSimulationRuntimeStep() && ok;
     ok = testTwoLevelCachesPreserveResults() && ok;
+    ok = testMultilayerWindProfileBuildsShearAndCacheHits() && ok;
     ok = testExtendedCachesExposeHits() && ok;
     ok = testMotorClusterBurnWindowTracksArmedMotors() && ok;
     ok = testProjectDocumentRoundTripPreservesMeshEdits() && ok;

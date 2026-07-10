@@ -13,6 +13,12 @@ namespace {
 constexpr double pi = 3.14159265358979323846;
 constexpr double earth_radius_m = 6371000.0;
 
+struct WindLayerAnchor {
+    double altitude_m {};
+    double speed_scale {};
+    double direction_offset_deg {};
+};
+
 double saturationVaporPressurePa(double temperature_c) noexcept {
     const double exponent = (17.625 * temperature_c) / (temperature_c + 243.04);
     return 610.94 * std::exp(exponent);
@@ -24,6 +30,73 @@ double humidityClampedPercent(double humidity_percent) noexcept {
 
 double degToRad(double degrees) noexcept {
     return degrees * pi / 180.0;
+}
+
+double wrapDegrees360(double degrees) noexcept {
+    return std::fmod(degrees + 360.0, 360.0);
+}
+
+double smoothstep01(double value) noexcept {
+    const double t = std::clamp(value, 0.0, 1.0);
+    return t * t * (3.0 - 2.0 * t);
+}
+
+double mix(double lhs, double rhs, double t) noexcept {
+    return lhs + (rhs - lhs) * t;
+}
+
+double interpolateLayerValue(
+    double altitude_m,
+    double low_altitude_m,
+    double low_value,
+    double high_altitude_m,
+    double high_value) noexcept {
+    if (high_altitude_m <= low_altitude_m) {
+        return high_value;
+    }
+    const double t = smoothstep01((altitude_m - low_altitude_m) / (high_altitude_m - low_altitude_m));
+    return mix(low_value, high_value, t);
+}
+
+WindLayerAnchor interpolatedWindLayer(double altitude_m) noexcept {
+    constexpr std::array<WindLayerAnchor, 5> anchors {{
+        {.altitude_m = 0.0, .speed_scale = 0.82, .direction_offset_deg = -3.0},
+        {.altitude_m = 120.0, .speed_scale = 1.00, .direction_offset_deg = 0.0},
+        {.altitude_m = 600.0, .speed_scale = 1.20, .direction_offset_deg = 8.0},
+        {.altitude_m = 1800.0, .speed_scale = 1.42, .direction_offset_deg = 18.0},
+        {.altitude_m = 4200.0, .speed_scale = 1.30, .direction_offset_deg = 26.0}
+    }};
+
+    if (altitude_m <= anchors.front().altitude_m) {
+        return anchors.front();
+    }
+    if (altitude_m >= anchors.back().altitude_m) {
+        return anchors.back();
+    }
+
+    for (std::size_t index = 1; index < anchors.size(); ++index) {
+        if (altitude_m <= anchors[index].altitude_m) {
+            const auto& low = anchors[index - 1];
+            const auto& high = anchors[index];
+            return WindLayerAnchor {
+                .altitude_m = altitude_m,
+                .speed_scale = interpolateLayerValue(
+                    altitude_m,
+                    low.altitude_m,
+                    low.speed_scale,
+                    high.altitude_m,
+                    high.speed_scale),
+                .direction_offset_deg = interpolateLayerValue(
+                    altitude_m,
+                    low.altitude_m,
+                    low.direction_offset_deg,
+                    high.altitude_m,
+                    high.direction_offset_deg)
+            };
+        }
+    }
+
+    return anchors.back();
 }
 
 }  // namespace
@@ -175,11 +248,35 @@ const Environment::WindCacheEntry& Environment::windSample(double altitude_m, do
     }
 
     const double relative_altitude_m = std::max(altitude_m, 0.0);
-    const double direction_rad = degToRad(surface_weather_.wind_direction_deg);
-    const double power_law_scale = std::pow(std::max((relative_altitude_m + 10.0) / 10.0, 0.25), 0.14);
-    const double gust_component =
-        surface_weather_.wind_gust_mps * 0.35 * std::sin(0.23 * time_s + relative_altitude_m * 0.012);
-    const double wind_speed_mps = std::max(0.0, surface_weather_.wind_speed_mps * power_law_scale + gust_component);
+    const WindLayerAnchor layer = interpolatedWindLayer(relative_altitude_m);
+    const double base_direction_deg = wrapDegrees360(surface_weather_.wind_direction_deg);
+    const double surface_wind_speed_mps = std::max(surface_weather_.wind_speed_mps, 0.0);
+    const double gust_excess_mps =
+        std::max(surface_weather_.wind_gust_mps - surface_wind_speed_mps, 0.0);
+    const double boundary_layer_scale = std::clamp(
+        std::pow(std::max((relative_altitude_m + 20.0) / 20.0, 0.3), 0.08),
+        0.92,
+        1.14);
+    const double altitude_band_strength =
+        smoothstep01(std::min(relative_altitude_m / 1600.0, 1.0));
+    const double gust_wave =
+        gust_excess_mps *
+        (0.18 + 0.12 * altitude_band_strength) *
+        std::sin(0.19 * time_s + relative_altitude_m * 0.009);
+    const double meander_wave =
+        surface_wind_speed_mps *
+        (0.03 + 0.04 * altitude_band_strength) *
+        std::sin(0.05 * time_s + relative_altitude_m * 0.0017 + 1.3);
+    const double directional_wave_deg =
+        (2.0 + 4.0 * altitude_band_strength + 0.25 * gust_excess_mps) *
+        std::sin(0.07 * time_s + relative_altitude_m * 0.0028);
+    const double wind_speed_mps = std::max(
+        0.0,
+        surface_wind_speed_mps * layer.speed_scale * boundary_layer_scale +
+            gust_wave +
+            meander_wave);
+    const double direction_rad = degToRad(
+        wrapDegrees360(base_direction_deg + layer.direction_offset_deg + directional_wave_deg));
 
     wind_l1_ = WindCacheEntry {
         .altitude_m = altitude_m,
