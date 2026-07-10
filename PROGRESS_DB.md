@@ -23,6 +23,7 @@ Current reality:
 - trajectory rendering helpers are now extracted from common UI helpers into `src/app/RocketAppTrajectory.hpp/.cpp`
 - wind-tunnel aero/math helper extraction now lives in dedicated `src/app/RocketAppAeroHelpers.hpp/.cpp`
 - generic Dear ImGui helper extraction now lives in dedicated `src/app/RocketAppImGuiHelpers.hpp/.cpp`
+- simulation history plotting/content extraction now lives in dedicated `src/app/RocketAppHistory.hpp/.cpp`
 - `src/app/RocketAppImGui.inl`: active Dear ImGui shell for the desktop workflow
 - `SimulationMonitor.cpp`: implemented; external monitor available on Windows
 - F2 analytics now use resizable Dear ImGui hosts while preserving the richer legacy telemetry, trajectory, wind-tunnel, and mission panels
@@ -32,6 +33,7 @@ Current reality:
 - the same mission panels now also handle the zero-armed-motor case explicitly, avoiding fake boost/coast cues when every motor is failed
 - trajectory overview labels in F2 now stay coherent with the actual inspection mode, including `Scrub`, `Keyframe`, `Replay`, and `Live`
 - mission events panels now explicitly switch into `Scrub` inspection language instead of pretending the user is in live flight phase
+- the active Dear ImGui `History` panel now delegates its historical plot/render logic to a dedicated module, reducing growth inside `RocketAppImGui.inl` without changing behavior
 - Windows builds now export a single GUI app binary `RocketLab.exe` into `artifacts/<Config>/`, while tests are emitted separately under `artifacts/tests/<Config>/`
 
 ### Modeling
@@ -169,6 +171,7 @@ Current reality:
 
 - move `src/app/*.inl` into stronger `.hpp/.cpp` modules
 - continue the module extraction after `RocketAppTrajectory`, `RocketAppAeroHelpers`, and `RocketAppImGuiHelpers` with the next lowest-coupling UI helpers
+- keep peeling active Dear ImGui panels out of `RocketAppImGui.inl` one focused panel at a time, starting now with `RocketAppHistory`
 - deepen topology editing beyond the current first operator set
 - continue refining CFD particle neighborhoods and pressure visualization fidelity
 - add historical simulation graphs and richer comparison tools

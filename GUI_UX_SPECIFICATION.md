@@ -13,6 +13,7 @@ The current primary interface is:
 - `src/RocketApp.cpp`
 - `src/app/RocketAppTrajectory.hpp/.cpp`
 - `src/app/RocketAppAeroHelpers.hpp/.cpp`
+- `src/app/RocketAppHistory.hpp/.cpp`
 - `src/app/RocketAppImGui.inl`
 - `src/app/RocketAppState.inl`
 - `src/app/RocketAppInteraction.inl`

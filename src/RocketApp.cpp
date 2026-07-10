@@ -34,6 +34,7 @@
 #include "rocket/VehicleModel.hpp"
 #include "rocket/WeatherProvider.hpp"
 #include "app/RocketAppAeroHelpers.hpp"
+#include "app/RocketAppHistory.hpp"
 #include "app/RocketAppImGuiHelpers.hpp"
 #include "app/RocketAppTrajectory.hpp"
 
