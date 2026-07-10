@@ -10,6 +10,7 @@ Ultimo aggiornamento: `2026-05-12`
 - materials
 - recovery settings
 - launch site and surface weather
+- launch rail state and rail length
 - weather source selection
 - motor editor settings
 - current motor cluster layout and failure state
@@ -39,6 +40,7 @@ The current writer uses sections like:
 - `[recovery]`
 - `[launch_site]`
 - `[surface_weather]`
+- `[launch_rail]`
 - `[weather]`
 - `[motor_editor]`
 - `[cluster]`

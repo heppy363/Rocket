@@ -30,7 +30,8 @@ Ultimo aggiornamento: `2026-05-26`
 - [x] Introdurre grafici storici per quota, Mach, `q`, `rho`, `P`, `P0`, `Re`.
 - [~] Migliorare il profilo vento con shear multilayer.
   Primo pass completato: il runtime usa ora bande di quota con shear e directional veer, mantenendo compatibilita con i dati meteo esistenti.
-- [ ] Aggiungere fase di launch rail / rail guidance.
+- [~] Aggiungere fase di launch rail / rail guidance.
+  Primo pass completato: rail verticale con lunghezza configurabile, vincolo iniziale di guida e rilascio automatico a fine rail.
 - [ ] Aggiungere mappe di dispersione e landing analysis.
 
 ## Aero / CFD

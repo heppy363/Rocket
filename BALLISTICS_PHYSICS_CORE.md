@@ -116,6 +116,7 @@ Not yet implemented:
 Implemented in first pass:
 
 - layered wind profile by altitude bands with directional veer and shear derived from the current surface weather state
+- launch rail guidance with constrained early-flight translation/rotation until rail release
 
 ## CFD Layer: What It Is Today
 

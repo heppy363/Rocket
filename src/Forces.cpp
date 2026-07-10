@@ -102,6 +102,27 @@ Vector3 inverseRotateVector(const Quaternion& rotation, const Vector3& vector) n
     return rotateVector(rotation.conjugate(), vector);
 }
 
+Vector3 projectOntoAxis(const Vector3& vector, const Vector3& axis_normalized) noexcept {
+    return dot(vector, axis_normalized) * axis_normalized;
+}
+
+bool isOnLaunchRail(
+    const FlightState& state,
+    const Environment& environment) noexcept {
+    const LaunchRail& rail = environment.launchRail();
+    if (!rail.enabled || rail.rail_length_m <= 1e-6) {
+        return false;
+    }
+
+    const Vector3 rail_axis_world =
+        rotateVector(state.attitude_body_to_world, {0.0, 0.0, 1.0}).normalized();
+    const double axial_position_m = dot(state.position_m, rail_axis_world);
+    const Vector3 radial_offset_m = state.position_m - projectOntoAxis(state.position_m, rail_axis_world);
+    return axial_position_m >= -0.05 &&
+           axial_position_m < rail.rail_length_m &&
+           radial_offset_m.magnitude() <= 0.15;
+}
+
 Vector3 computeAerodynamicNormalForce(
     const FlightState& state,
     const VehicleModel& vehicle,
@@ -314,6 +335,15 @@ ForceResult computeForces(
                            result.aerodynamic_normal_force_world_n +
                            result.cfd_force_world_n +
                            result.gravity_force_n;
+    result.on_launch_rail = isOnLaunchRail(state, environment);
+    if (result.on_launch_rail) {
+        const Vector3 rail_axis_world =
+            rotateVector(state.attitude_body_to_world, {0.0, 0.0, 1.0}).normalized();
+        result.total_force_n = projectOntoAxis(result.total_force_n, rail_axis_world);
+        result.thrust_moment_body_nm = {};
+        result.aerodynamic_moment_body_nm = {};
+        result.cfd_moment_body_nm = {};
+    }
     return result;
 }
 
@@ -325,14 +355,38 @@ StateDerivative evaluateStateDerivative(
     const ForceResult forces = computeForces(state, vehicle, environment, time_s);
 
     const double effective_mass_kg = std::max(state.mass_kg, vehicle.dry_mass_kg);
+    Vector3 velocity_mps = state.velocity_mps;
+    Vector3 acceleration_mps2 = forces.total_force_n / effective_mass_kg;
+    Quaternion attitude_rate = computeAttitudeRate(
+        state.attitude_body_to_world,
+        state.angular_velocity_body_radps);
+    Vector3 angular_acceleration_body_radps2 = computeAngularAccelerationBody(
+        forces.thrust_moment_body_nm + forces.aerodynamic_moment_body_nm + forces.cfd_moment_body_nm,
+        state.angular_velocity_body_radps,
+        vehicle.principal_inertia_kgm2);
+
+    if (forces.on_launch_rail) {
+        const Vector3 rail_axis_world =
+            rotateVector(state.attitude_body_to_world, {0.0, 0.0, 1.0}).normalized();
+        const double axial_position_m = dot(state.position_m, rail_axis_world);
+        const double axial_velocity_mps = dot(state.velocity_mps, rail_axis_world);
+        velocity_mps = projectOntoAxis(state.velocity_mps, rail_axis_world);
+        acceleration_mps2 = projectOntoAxis(acceleration_mps2, rail_axis_world);
+        if (axial_position_m <= 1e-4 &&
+            axial_velocity_mps <= 1e-4 &&
+            dot(acceleration_mps2, rail_axis_world) < 0.0) {
+            velocity_mps = {};
+            acceleration_mps2 = {};
+        }
+        attitude_rate = {};
+        angular_acceleration_body_radps2 = {};
+    }
+
     return {
-        .velocity_mps = state.velocity_mps,
-        .acceleration_mps2 = forces.total_force_n / effective_mass_kg,
-        .attitude_rate = computeAttitudeRate(state.attitude_body_to_world, state.angular_velocity_body_radps),
-        .angular_acceleration_body_radps2 = computeAngularAccelerationBody(
-            forces.thrust_moment_body_nm + forces.aerodynamic_moment_body_nm + forces.cfd_moment_body_nm,
-            state.angular_velocity_body_radps,
-            vehicle.principal_inertia_kgm2),
+        .velocity_mps = velocity_mps,
+        .acceleration_mps2 = acceleration_mps2,
+        .attitude_rate = attitude_rate,
+        .angular_acceleration_body_radps2 = angular_acceleration_body_radps2,
         .mass_flow_kgps = -vehicle.cluster.massFlowKgPerS(time_s)
     };
 }

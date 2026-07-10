@@ -761,6 +761,7 @@ void drawSimulationScenarioImGui(
 
     auto site = environment.launchSite();
     auto weather = environment.surfaceWeather();
+    auto launch_rail = environment.launchRail();
     bool environment_changed = false;
 
     ImGui::SeparatorText("Launch Site");
@@ -776,6 +777,12 @@ void drawSimulationScenarioImGui(
     environment_changed |= dragDouble("Wind dir", weather.wind_direction_deg, 0.5, 0.0, 360.0, "%.1f deg");
     environment_changed |= dragDouble("Wind gust", weather.wind_gust_mps, 0.1, 0.0, 45.0, "%.1f m/s");
 
+    ImGui::SeparatorText("Launch Rail");
+    if (ImGui::Checkbox("Rail guidance enabled", &launch_rail.enabled)) {
+        environment_changed = true;
+    }
+    environment_changed |= dragDouble("Rail length", launch_rail.rail_length_m, 0.05, 0.5, 12.0, "%.2f m");
+
     ImGui::SeparatorText("Recovery");
     auto& recovery = vehicle.recovery_system;
     environment_changed |= dragDouble("Deploy altitude", recovery.deployment_altitude_m, 2.0, 30.0, 1200.0, "%.0f m");
@@ -786,8 +793,10 @@ void drawSimulationScenarioImGui(
         site.latitude_deg = std::clamp(site.latitude_deg, 35.0, 47.5);
         site.longitude_deg = std::clamp(site.longitude_deg, 6.0, 19.0);
         weather.wind_direction_deg = std::fmod(weather.wind_direction_deg + 360.0, 360.0);
+        launch_rail.rail_length_m = std::clamp(launch_rail.rail_length_m, 0.5, 12.0);
         environment.setLaunchSite(site);
         environment.setSurfaceWeather(weather);
+        environment.setLaunchRail(launch_rail);
         resetSimulationRuntime(vehicle, runtime);
     }
 
@@ -917,6 +926,8 @@ void drawSimulationEventsWindowImGui(
         primary_event = "Replay inspection mode";
     } else if (snapshot_in_boost) {
         primary_event = "Boost phase active";
+    } else if (snapshot.on_launch_rail) {
+        primary_event = "Launch rail guidance";
     } else if (
         boost_available && snapshot.time_s > burn_time_s &&
         snapshot.state.position_m.z > 0.0 &&
@@ -971,6 +982,7 @@ void drawSimulationEventsWindowImGui(
             {"Scrub preview", runtime.scrub_preview_active ? "Active" : "Off"},
             {"Replay", runtime.replay_active ? "Active" : "Off"},
             {"Keyframe preview", runtime.keyframe_preview_active ? "Active" : "Off"},
+            {"Launch rail", snapshot.on_launch_rail ? "Guided" : "Released"},
             {"Recovery", snapshot.parachute_deployed ? "Deployed" : "Stowed"},
             {"Ground contact", runtime.impact_recorded ? "Recorded" : "No"}
         });

@@ -36,6 +36,7 @@ struct SimulationSnapshot {
     int cfd_solver_particle_count {};
     int cfd_render_particle_count {};
     bool parachute_deployed {};
+    bool on_launch_rail {};
     std::string nose_shape_label {};
     std::string fin_shape_label {};
 };

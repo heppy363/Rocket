@@ -75,6 +75,7 @@ Implemented:
 - mission control actions
 - telemetry panels
 - scenario controls
+- launch-rail controls inside the simulation scenario workflow
 - trajectory rendering
 - event markers
 - replay mode

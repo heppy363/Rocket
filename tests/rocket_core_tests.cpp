@@ -156,6 +156,59 @@ bool testMultilayerWindProfileBuildsShearAndCacheHits() {
                "Wind cache should preserve repeated multilayer samples");
 }
 
+bool testLaunchRailGuidanceConstrainsEarlyFlight() {
+    rocket::VehicleModel vehicle = makeValidVehicle();
+    vehicle.cluster = rocket::MotorCluster({
+        rocket::MountedMotor {
+            .motor = rocket::Motor {.max_thrust_n = 260.0, .burn_time_s = 2.0, .propellant_mass_kg = 0.22},
+            .mount_position_m = {0.0, 0.0, 0.0},
+            .thrust_direction_body = {0.0, 0.0, 1.0},
+            .failed = false}});
+
+    rocket::Environment environment;
+    environment.setSurfaceWeather(rocket::SurfaceWeather {
+        .pressure_hpa = 1012.0,
+        .temperature_c = 18.0,
+        .humidity_percent = 45.0,
+        .wind_speed_mps = 11.0,
+        .wind_direction_deg = 90.0,
+        .wind_gust_mps = 14.0});
+    environment.setLaunchRail(rocket::LaunchRail {
+        .enabled = true,
+        .rail_length_m = 4.0});
+
+    rocket::FlightState on_rail_state = rocket::buildRestState(vehicle);
+    on_rail_state.position_m = {0.0, 0.0, 0.0};
+
+    rocket::FlightState free_flight_state = on_rail_state;
+    free_flight_state.position_m = {0.0, 0.0, 4.6};
+
+    const auto on_rail_force = rocket::computeForces(on_rail_state, vehicle, environment, 0.4);
+    const auto on_rail_derivative = rocket::evaluateStateDerivative(on_rail_state, vehicle, environment, 0.4);
+    const auto free_flight_force = rocket::computeForces(free_flight_state, vehicle, environment, 0.4);
+    const auto free_flight_derivative =
+        rocket::evaluateStateDerivative(free_flight_state, vehicle, environment, 0.4);
+
+    const double on_rail_lateral_accel =
+        std::sqrt(
+            on_rail_derivative.acceleration_mps2.x * on_rail_derivative.acceleration_mps2.x +
+            on_rail_derivative.acceleration_mps2.y * on_rail_derivative.acceleration_mps2.y);
+    const double free_flight_lateral_accel =
+        std::sqrt(
+            free_flight_derivative.acceleration_mps2.x * free_flight_derivative.acceleration_mps2.x +
+            free_flight_derivative.acceleration_mps2.y * free_flight_derivative.acceleration_mps2.y);
+
+    return check(
+               on_rail_force.on_launch_rail && !free_flight_force.on_launch_rail,
+               "Launch rail guidance should be active only while the rocket remains on the rail") &&
+           check(
+               on_rail_lateral_accel < 1e-6 && free_flight_lateral_accel > 1e-3,
+               "Launch rail guidance should suppress lateral acceleration until rail release") &&
+           check(
+               on_rail_derivative.angular_acceleration_body_radps2.magnitude() < 1e-6,
+               "Launch rail guidance should keep early-flight angular motion clamped on the rail");
+}
+
 bool testExtendedCachesExposeHits() {
     const rocket::VehicleModel vehicle = makeValidVehicle();
     const rocket::Environment environment;
@@ -259,6 +312,9 @@ bool testProjectDocumentRoundTripPreservesMeshEdits() {
         .wind_speed_mps = 6.5,
         .wind_direction_deg = 135.0,
         .wind_gust_mps = 9.1};
+    saved.launch_rail = {
+        .enabled = true,
+        .rail_length_m = 6.2};
     saved.weather_source = rocket::WeatherDataSource::OpenMeteoReady;
     saved.motor_settings = {
         .motor_count = 3,
@@ -281,8 +337,10 @@ bool testProjectDocumentRoundTripPreservesMeshEdits() {
            check(
                loaded.active_preset == saved.active_preset &&
                    loaded.weather_source == saved.weather_source &&
+                   loaded.launch_rail.enabled == saved.launch_rail.enabled &&
+                   nearlyEqual(loaded.launch_rail.rail_length_m, saved.launch_rail.rail_length_m) &&
                    nearlyEqual(loaded.motor_settings.cant_angle_deg, saved.motor_settings.cant_angle_deg),
-               "Project roundtrip should preserve preset, weather source, and motor editor state") &&
+               "Project roundtrip should preserve preset, weather source, launch rail, and motor editor state") &&
            check(
                loaded.vehicle.geometry.nose_vertex_mods.is_active &&
                    loaded.vehicle.geometry.nose_vertex_mods.modified_vertices.size() == 1 &&
@@ -333,6 +391,7 @@ int main() {
     ok = testSimulationRuntimeStep() && ok;
     ok = testTwoLevelCachesPreserveResults() && ok;
     ok = testMultilayerWindProfileBuildsShearAndCacheHits() && ok;
+    ok = testLaunchRailGuidanceConstrainsEarlyFlight() && ok;
     ok = testExtendedCachesExposeHits() && ok;
     ok = testMotorClusterBurnWindowTracksArmedMotors() && ok;
     ok = testProjectDocumentRoundTripPreservesMeshEdits() && ok;

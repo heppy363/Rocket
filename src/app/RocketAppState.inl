@@ -339,6 +339,7 @@ rocket::ProjectDocument buildProjectDocument(
         .vehicle = vehicle,
         .launch_site = environment.launchSite(),
         .surface_weather = environment.surfaceWeather(),
+        .launch_rail = environment.launchRail(),
         .weather_source = environment.weatherDataSource(),
         .motor_settings = {
             .motor_count = motor_editor.motor_count,
@@ -437,6 +438,7 @@ void applyProjectDocument(
     applyProjectMotorSettings(motor_editor, document.motor_settings);
     environment.setLaunchSite(document.launch_site);
     environment.setSurfaceWeather(document.surface_weather);
+    environment.setLaunchRail(document.launch_rail);
     environment.setWeatherDataSource(document.weather_source);
     rebuildVehicle(vehicle, mesh_generator, runtime);
 }

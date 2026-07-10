@@ -109,6 +109,10 @@ const SurfaceWeather& Environment::surfaceWeather() const noexcept {
     return surface_weather_;
 }
 
+const LaunchRail& Environment::launchRail() const noexcept {
+    return launch_rail_;
+}
+
 WeatherDataSource Environment::weatherDataSource() const noexcept {
     return weather_data_source_;
 }
@@ -121,6 +125,10 @@ void Environment::setLaunchSite(const LaunchSite& site) noexcept {
 void Environment::setSurfaceWeather(const SurfaceWeather& weather) noexcept {
     surface_weather_ = weather;
     invalidateCaches();
+}
+
+void Environment::setLaunchRail(const LaunchRail& rail) noexcept {
+    launch_rail_ = rail;
 }
 
 void Environment::setWeatherDataSource(WeatherDataSource source) noexcept {

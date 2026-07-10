@@ -489,6 +489,10 @@ bool saveProjectDocument(
         writeScalar(output, "wind_direction_deg", document.surface_weather.wind_direction_deg);
         writeScalar(output, "wind_gust_mps", document.surface_weather.wind_gust_mps);
 
+        writeSection(output, "launch_rail");
+        writeScalar(output, "enabled", document.launch_rail.enabled ? 1 : 0);
+        writeScalar(output, "rail_length_m", document.launch_rail.rail_length_m);
+
         writeSection(output, "weather");
         switch (document.weather_source) {
         case WeatherDataSource::OpenMeteoReady:
@@ -697,6 +701,11 @@ bool loadProjectDocument(
             return false;
         }
 
+        if (!loadBoolIfPresent(parsed, "launch_rail.enabled", loaded.launch_rail.enabled, error_message) ||
+            !loadNumberIfPresent(parsed, "launch_rail.rail_length_m", loaded.launch_rail.rail_length_m, error_message)) {
+            return false;
+        }
+
         if (const auto value = lookup(parsed, "weather.source"); value.has_value()) {
             const auto parsed_value = parseWeatherSource(*value);
             if (!parsed_value.has_value()) {
@@ -769,6 +778,10 @@ bool exportProjectReport(
         output << std::format("Reference area: {:.5f} m2\n", document.vehicle.reference_area_m2);
         output << std::format("Motors: {}\n", document.vehicle.cluster.motorCount());
         output << std::format("Launch site: lat {:.4f}, lon {:.4f}, elev {:.1f} m\n", document.launch_site.latitude_deg, document.launch_site.longitude_deg, document.launch_site.elevation_m);
+        output << std::format(
+            "Launch rail: {} ({:.2f} m)\n",
+            document.launch_rail.enabled ? "enabled" : "disabled",
+            document.launch_rail.rail_length_m);
         output << std::format("Weather source: {}\n\n",
             document.weather_source == WeatherDataSource::OpenMeteoReady ? "Open-Meteo Ready" :
             document.weather_source == WeatherDataSource::OpenWeatherMapReady ? "OpenWeatherMap Ready" :

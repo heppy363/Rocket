@@ -22,6 +22,11 @@ struct SurfaceWeather {
     double wind_gust_mps {0.0};
 };
 
+struct LaunchRail {
+    bool enabled {true};
+    double rail_length_m {5.0};
+};
+
 enum class WeatherDataSource {
     Manual,
     OpenMeteoReady,
@@ -46,10 +51,12 @@ class Environment {
 public:
     [[nodiscard]] const LaunchSite& launchSite() const noexcept;
     [[nodiscard]] const SurfaceWeather& surfaceWeather() const noexcept;
+    [[nodiscard]] const LaunchRail& launchRail() const noexcept;
     [[nodiscard]] WeatherDataSource weatherDataSource() const noexcept;
 
     void setLaunchSite(const LaunchSite& site) noexcept;
     void setSurfaceWeather(const SurfaceWeather& weather) noexcept;
+    void setLaunchRail(const LaunchRail& rail) noexcept;
     void setWeatherDataSource(WeatherDataSource source) noexcept;
 
     [[nodiscard]] double airDensityKgPerM3(double altitude_m) const noexcept;
@@ -85,6 +92,7 @@ private:
 
     LaunchSite launch_site_ {};
     SurfaceWeather surface_weather_ {};
+    LaunchRail launch_rail_ {};
     WeatherDataSource weather_data_source_ {WeatherDataSource::Manual};
     mutable AtmosphereCacheEntry atmosphere_l1_ {};
     mutable WindCacheEntry wind_l1_ {};

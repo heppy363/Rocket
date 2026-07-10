@@ -77,7 +77,7 @@ Current reality:
 - key mission events and replay: implemented
 - manual timeline scrub with keyframe delta comparison: implemented
 - compact historical graphs for altitude, Mach, `q`, `rho`, `P`, `P0`, `Re`: implemented
-- rail guidance / launch rod phase: not yet implemented
+- launch rail / launch rod phase: first implementation completed
 - layered wind profile: first implementation completed
 - dispersion map: not yet implemented
 
@@ -99,6 +99,7 @@ Current reality:
 
 - `.rlab` project format: first implementation completed
 - save/load of geometry, materials, scenario, recovery, motor settings, cluster state: implemented
+- launch-rail scenario config is now persisted together with site/weather and motor editor settings
 - save/load of free vertex modifiers: implemented
 - save/load of topology overrides for edited meshes: implemented
 - `.rlab` loader now rejects unsupported `format_version` values explicitly instead of attempting a partial load

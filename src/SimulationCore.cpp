@@ -63,6 +63,7 @@ SimulationSnapshot buildSimulationSnapshot(
         .cfd_solver_particle_count = cfd_solver_particle_count,
         .cfd_render_particle_count = cfd_render_particle_count,
         .parachute_deployed = force_result.parachute_deployed,
+        .on_launch_rail = force_result.on_launch_rail,
         .nose_shape_label = std::string(noseConeShapeLabel(vehicle.geometry.nose_cone_shape)),
         .fin_shape_label = std::string(finShapeLabel(vehicle.geometry.fin_shape))
     };

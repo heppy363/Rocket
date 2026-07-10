@@ -52,6 +52,7 @@ Built by `CMake` today:
 - launch/replay/reset controls
 - manual timeline scrub with direct comparison against the selected keyframe
 - dedicated simulation history window with compact traces for altitude, Mach, `q`, `rho`, `P`, `P0`, and Reynolds
+- first vertical `Launch Rail` guidance phase with configurable rail length from the simulation scenario
 - fixed, follow, and free simulation camera
 - trajectory history and event markers
 - clustered motors with failure toggles

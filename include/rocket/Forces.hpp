@@ -28,6 +28,7 @@ struct ForceResult {
     double shockwave_intensity {};
     double aeroelastic_response {};
     bool parachute_deployed {};
+    bool on_launch_rail {};
 };
 
 [[nodiscard]] ForceResult computeForces(

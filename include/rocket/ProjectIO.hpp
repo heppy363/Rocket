@@ -25,6 +25,7 @@ struct ProjectDocument {
     VehicleModel vehicle {};
     LaunchSite launch_site {};
     SurfaceWeather surface_weather {};
+    LaunchRail launch_rail {};
     WeatherDataSource weather_source {WeatherDataSource::Manual};
     ProjectMotorSettings motor_settings {};
 };
